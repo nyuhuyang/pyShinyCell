@@ -40,22 +40,14 @@ color_generator <- function(palette.name, n=NULL, alpha = 1){
     if(palette.name == "white") return(rep("white",max(n,5)))
     N = as.integer(pal.info[palette.name,"maxcolors"])
     if(is.null(n)) n = N
-    enough.color <- as.character(pal.info[palette.name,"maxcolors"] >= n)
+    #enough.color <- as.character(pal.info[palette.name,"maxcolors"] >= n)
     switch (pal.info[palette.name,"package"],
-            "custom" = switch(enough.color,
-                              "TRUE" = cList[[palette.name]][1:n],
-                              "FALSE" = colorRampPalette(cList[[palette.name]])(n)
-            ),
-            "RColorBrewer" = switch(enough.color,
-                                    "TRUE" = brewer.pal(n = pal.info[palette.name,"maxcolors"],
-                                                        palette.name)[1:n],
-                                    "FALSE" = colorRampPalette(brewer.pal(n = pal.info[palette.name,"maxcolors"],
-                                                                          palette.name))(n)),
+            "custom" = colorRampPalette(cList[[palette.name]])(n),
+            "RColorBrewer" = colorRampPalette(brewer.pal(n = pal.info[palette.name,"maxcolors"],
+                                                         palette.name))(n),
             "ggsci" = {
                 ggsci_f <- get(paste0("pal_",tolower(sub("\\..*","",palette.name))))
-                switch(enough.color,
-                       "TRUE" = ggsci_f(palette = pal.info[palette.name,"palette"],alpha = alpha)(pal.info[palette.name,"maxcolors"])[1:n],
-                       "FALSE" = colorRampPalette(ggsci_f(palette = pal.info[palette.name,"palette"],alpha = alpha)(pal.info[palette.name,"maxcolors"]))(n))
+                colorRampPalette(ggsci_f(palette = pal.info[palette.name,"palette"],alpha = alpha)(pal.info[palette.name,"maxcolors"]))(n)
             }
     )
 }
@@ -67,8 +59,9 @@ pList2 = c("500px", "700px", "900px")
 names(pList2) = c("Small", "Medium", "Large")
 sList = c(12,18,24,30,36)
 names(sList) = c("Extra Small","Small", "Medium", "Large", "Extra Large")
-lList = c(4,5,6,7)
-names(lList) = c("Extra Small","Small", "Medium", "Large")
+lList = c(4,5,6,7,8)
+names(lList) = c("Extra Small","Small", "Medium", "Large", "Extra Large")
+
 
 doFactoring <- function(ggData,inpConf, col = "X", inp, inpcols,inporder =NULL) {
     if(class(ggData[[col]]) == "factor") {
@@ -78,16 +71,17 @@ doFactoring <- function(ggData,inpConf, col = "X", inp, inpcols,inporder =NULL) 
     } else {
         gglvl = sort(unique(ggData[[col]]))
     }
-
-    ggCol = strsplit(inpConf[UI == inp]$fCL, "\\|")[[1]]
+    
     ggCol = switch(inpcols,
-                   "default" = ggCol,
-                   color_generator(inpcols,length(ggCol)))
-    names(ggCol) = strsplit(inpConf[UI == inp]$fID, "\\|")[[1]]
-
+                   "default" = strsplit(inpConf[UI == inp]$fCL, "\\|")[[1]],
+                   color_generator(inpcols,length(gglvl)))
+    if(inpConf[UI == inp]$grp)  names(ggCol) = switch(inpcols,
+                                                      "default" = strsplit(inpConf[UI == inp]$fID, "\\|")[[1]],
+                                                      gglvl)
+    
     if(length(inporder)>0){
         gglvl = inporder
-        #ggData = ggData[ggData[[col]] %in% gglvl]
+        ggData = ggData[ggData[[col]] %in% gglvl]
         ggData[[col]] %<>% factor(levels = gglvl)
         ggCol = ggCol[gglvl]
     }
@@ -105,7 +99,7 @@ g_legend <- function(a.gplot){
 }
 
 # Plot theme
-sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){
+sctheme <- function(base_size = 24, XYval = TRUE, XYtitle = TRUE, Xang = 0, XjusH = 0.5){
     oupTheme = theme(
         text = element_text(size = base_size, family = "Avenir"),
         panel.background = element_rect(fill = "white", colour = "#000000"),
@@ -123,6 +117,11 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){
             axis.text.x = element_blank(), axis.ticks.x = element_blank(),
             axis.text.y = element_blank(), axis.ticks.y = element_blank())
     }
+    if(!XYtitle){
+        oupTheme = oupTheme + theme(
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank())
+    }
     return(oupTheme)
 }
 
@@ -130,9 +129,9 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){
 # Plot cell information on dimred
 scDRcell <- function(inpConf, inpMeta, inpdrX, inpdrY, inp1, inpsplt,
                      inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1, inpsub3_2,
-                     inpsiz, inpcols, inpord, inpfsz, inpasp, inptxt, inplab,inpleg = FALSE,
+                     inpsiz, inpcols, inpord, inpfsz, inpasp, inptxt, inptitle,inplab,inpleg = FALSE,
                      inplegpos = "bottom", inparrange = "auto", inpxlim = NULL, inpylim = NULL,
-                     inpmintxt = FALSE,inpalpha=0.9, inpbgcolor = "grey10"){
+                     inpmintxt = FALSE,inpalpha=0.9, inpbgcolor = "grey10", inpmaxoverlaps =20){
     # Prepare ggData
     ggData = inpMeta[, c(inpConf[UI == inpdrX]$ID, inpConf[UI == inpdrY]$ID,
                          inpConf[UI == inp1]$ID,
@@ -148,7 +147,7 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inpdrY, inp1, inpsplt,
     if(is.null(inpylim)) inpylim = c(min(ggData$Y), max(ggData$Y))
     #bgCells = FALSE
     ggData = Subset(ggData, inpsub1_2, inpsub2_2, inpsub3_2)
-
+    
     if(inpord == "Max-1st"){
         ggData = ggData[order(group)]
     } else if(inpord == "Min-1st"){
@@ -160,7 +159,7 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inpdrY, inp1, inpsplt,
     gglvl = temp$gglvl
     if(!is.na(inpConf[UI == inp1]$fCL)) ggCol = temp$ggCol[gglvl]
     ggData = temp$ggData
-
+    
     # Actual ggplot
     ggOut = ggplot(ggData, aes(X, Y, color = group))
     #if(bgCells){
@@ -169,13 +168,13 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inpdrY, inp1, inpsplt,
     #}
     ggOut = ggOut +
         geom_point(size = inpsiz, shape = 16) + xlab(inpdrX) + ylab(inpdrY) +
-        sctheme(base_size = sList[inpfsz], XYval = inptxt)
+        sctheme(base_size = sList[inpfsz], XYval = inptxt, XYtitle = inptitle)
     if(inpsplt %in% inpConf$ID){
         ggOut = ggOut + switch(inparrange,
                                "auto" = facet_wrap(facets = . ~ split, nrow = NULL,shrink = FALSE),
                                "1row" = facet_wrap(facets = . ~ split, nrow = 1,shrink = FALSE),
                                "1column" = facet_wrap(facets = split ~., ncol = 1,shrink = FALSE)
-                               )
+        )
     }
     if(is.na(inpConf[UI == inp1]$fCL)) # continous variable
     {
@@ -190,56 +189,59 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inpdrY, inp1, inpsplt,
         ggOut = ggOut + scale_color_manual("", values = switch(inpcols,
                                                                "default" =ggCol,
                                                                color_generator(inpcols,length(gglvl))))
-        ggOut = ggOut + guides(color = guide_legend(override.aes = list(size = 5),
-                                                    nrow = inpConf[UI == inp1]$fRow)) +
-            theme(legend.text = element_text(size = sListX[inpfsz]))
         if(inplab != "No labels"){
-            ggData = ggData[, .(X = mean(X), Y = mean(Y)), by = "group"]
-            lListX = min(nchar(paste0(ggData$group, collapse = "")), 200)
+            df_Freq <- as.data.frame(table(ggData$group)) %>%
+                    arrange(desc(Freq)) %>%
+                    head(inpmaxoverlaps)
+            ggLabData <- ggData %>% filter(group %in% df_Freq$Var1) %>%
+                    .[, .(X = mean(X), Y = mean(Y)), by = "group"]
+            lListX = min(nchar(paste0(ggLabData$group, collapse = "")), 200)
             lListX = lList - (0.25 * floor(lListX/50))
             options(ggrepel.max.overlaps = Inf)
             ggOut = ggOut + switch(inplab,
                                    "No labels" = NULL,
-                                   "black text" = geom_text_repel(data = ggData, aes(X, Y, label = group),
+                                   "black text" = geom_text_repel(data = ggLabData, aes(X, Y, label = group),
                                                                   alpha = inpalpha,
                                                                   color = "grey10",bg.color = "grey95", bg.r = 0.15,
-                                                                  size = lListX[inpfsz], seed = 42),
-                                   "black labels" = geom_label_repel(data = ggData, aes(X, Y, label = group),
+                                                                  size = lList[inpfsz], seed = 42),
+                                   "black labels" = geom_label_repel(data = ggLabData, aes(X, Y, label = group),
                                                                      color = "grey10",
                                                                      alpha = inpalpha,
                                                                      box.padding = unit(0.5, "lines"),
                                                                      point.padding = unit(0.8, "lines"),
-                                                                     size = lListX[inpfsz], seed = 42),
-                                   "color text" = geom_text_repel(data = ggData, aes(X, Y, label = group),
-                                                                   bg.color = "grey30", bg.r = 0.02,
-                                                                   alpha = inpalpha,
+                                                                     size = lList[inpfsz], seed = 42),
+                                   "color text" = geom_text_repel(data = ggLabData, aes(X, Y, label = group),
+                                                                  bg.color = "grey30", bg.r = 0.02,
+                                                                  alpha = inpalpha,
                                                                   box.padding = unit(0.5, "lines"),
                                                                   point.padding = unit(0.8, "lines"),
-                                                                   size = lList[inpfsz], seed = 42),
-                                   "color labels" = geom_label_repel(data = ggData, aes(X, Y, label = group),
+                                                                  size = lList[inpfsz], seed = 42),
+                                   "color labels" = geom_label_repel(data = ggLabData, aes(X, Y, label = group),
                                                                      alpha = inpalpha,
                                                                      box.padding = unit(0.5, "lines"),
                                                                      point.padding = unit(0.8, "lines"),
-                                                                     size = lListX[inpfsz], seed = 42)
+                                                                     size = lList[inpfsz], seed = 42)
             )
         }
+        ggOut = ggOut + guides(color = guide_legend(override.aes = list(size = lList[inpfsz]*1.5))) +
+            theme(legend.text = element_text(size = sListX[inpfsz]),
+                  legend.position = switch (as.character(inpleg),
+                                            "FALSE" = "none",
+                                            "TRUE" = inplegpos))
     }
-
+    
     if(inpmintxt) {
         ggOut = ggOut + scale_x_continuous(breaks= seq(inpxlim[1],inpxlim[2],by=ceiling((inpxlim[2] - inpxlim[1])/10))) +
-                        scale_y_continuous(breaks= seq(inpylim[1],inpylim[2],by=ceiling((inpylim[2] - inpylim[1])/10)))
+            scale_y_continuous(breaks= seq(inpylim[1],inpylim[2],by=ceiling((inpylim[2] - inpylim[1])/10)))
     }
     if(inpasp == "Square") {
         ggOut = ggOut + coord_fixed(ratio = rat,expand = TRUE)
     } else if(inpasp == "Fixed") {
         ggOut = ggOut + coord_fixed(xlim = inpxlim, ylim = inpylim,expand = TRUE)
     }
-    ggOut = ggOut + theme(legend.position = switch (as.character(inpleg),
-                                                    "FALSE" = "none",
-                                                    "TRUE" = inplegpos))
+
     return(ggOut)
 }
-
 
 scDRcellnum <- function(inpConf, inpMeta, inp1, inpsplt,
                         inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1, inpsub3_2){
@@ -290,25 +292,28 @@ scDRgeneData <- function(inpConf, inpMeta, inpMax, inpdrX, inpdrY, inpg1,inpsplt
     return(ggData)
 }
 
+
 scDRgene <- function(ggData,inpConf, inpMax, inpdrX, inpdrY, inpg1,inpsplt,
                      inpsiz, inpmax, inpcols,inpbground, inpord, inpfsz, inpasp,
-                     inptxt, inpleg = FALSE, inplegpos = "bottom",inparrange = "auto"){
-
+                     inptxt, inptitle,inpleg = FALSE, inplegpos = "bottom",inparrange = "auto",
+                     inpxlim = NULL, inpylim = NULL,inpmintxt = FALSE){
+    
     # record coordinates
-    max_x = max(ggData$X)
-    min_x = min(ggData$X)
-    max_y = max(ggData$Y)
-    min_y = min(ggData$Y)
+    max_x = ifelse(inpasp == "Square", max(ggData$X), inpxlim[2])
+    min_x = ifelse(inpasp == "Square", min(ggData$X), inpxlim[1])
+    max_y = ifelse(inpasp == "Square",max(ggData$Y), inpylim[2])
+    min_y = ifelse(inpasp == "Square",min(ggData$Y), inpylim[1])
+    
     rat = (max(ggData$X) - min(ggData$X)) / (max(ggData$Y) - min(ggData$Y))
     #bgCells = FALSE
-
+    
     if(inpmax) {
         ggData = rbindlist(list(ggData, head(ggData,1)))
         ggData[nrow(ggData),"X"] = max_x*20
         ggData[nrow(ggData),"Y"] = max_y*20
         ggData[nrow(ggData),"val"] = inpMax[inpg1,"val"]
     }
-
+    
     if(inpord == "Max-1st"){
         ggData = ggData[order(val)]
     } else if(inpord == "Min-1st"){
@@ -316,7 +321,7 @@ scDRgene <- function(ggData,inpConf, inpMax, inpdrX, inpdrY, inpg1,inpsplt,
     } else if(inpord == "Random"){
         ggData = ggData[sample(nrow(ggData))]
     }
-
+    
     # Actual ggplot
     ggOut = ggplot(ggData, aes(X, Y, color = val))
     #if(bgCells){
@@ -332,10 +337,10 @@ scDRgene <- function(ggData,inpConf, inpMax, inpdrX, inpdrY, inpg1,inpsplt,
     }
     ggOut = ggOut +
         geom_point(size = inpsiz, shape = 16) + xlab(inpdrX) + ylab(inpdrY) +
-        sctheme(base_size = sList[inpfsz], XYval = inptxt) +
+        sctheme(base_size = sList[inpfsz], XYval = inptxt, XYtitle = inptitle) +
         theme(legend.position = switch (as.character(inpleg),
-                                                        "FALSE" = "none",
-                                                        "TRUE" = inplegpos))+
+                                        "FALSE" = "none",
+                                        "TRUE" = inplegpos))+
         scale_color_gradientn(inpg1, colours = c(inpbground,color_generator(inpcols))) +
         guides(color = guide_colorbar(barwidth = switch (as.character(inplegpos),
                                                          "top" = sList[inpfsz]/1.5,
@@ -345,16 +350,22 @@ scDRgene <- function(ggData,inpConf, inpMax, inpdrX, inpdrY, inpg1,inpsplt,
                                                           "top" = sList[inpfsz]/15,
                                                           "right" = sList[inpfsz]/1.5,
                                                           "bottom" = sList[inpfsz]/15)
-                                      ))
-
+        ))
+    
     if(inpasp == "Square") {
-        ggOut = ggOut + coord_fixed(ratio = rat,xlim = c(min_x, max_x),ylim = c(min_y,max_y))
+        ggOut = ggOut + coord_fixed(xlim = c(min_x-1, max_x+1),
+                                    ylim = c(min_y-1,max_y+1),expand = TRUE)
     } else if(inpasp == "Fixed") {
-        ggOut = ggOut + coord_fixed(xlim = c(min_x, max_x),ylim = c(min_y,max_y))
+        ggOut = ggOut + coord_fixed(ratio = rat,xlim = c(min_x, max_x),
+                                    ylim = c(min_y,max_y),expand = TRUE)
     }
-
+    if(inpmintxt) {
+        ggOut = ggOut + scale_x_continuous(breaks= seq(min_x,max_x,by=ceiling((max_x - min_x)/10))) +
+            scale_y_continuous(breaks= seq(min_y,max_y,by=ceiling((max_y - min_y)/10)))
+    }
     return(ggOut)
 }
+
 
 
 DensityPlot <- function(sub_ggData,inpConf, inpg1, inpGrp,
@@ -448,10 +459,11 @@ scDRcoex <- function(inpConf, inpMeta, inpdrX, inpdrY, inpg1, inpg2, inpGrp,
 }
 
 scDRcoexPlot <- function(ggData, inpdrX, inpdrY,inpg1, inpg2,
-                         inpsiz, inpcols, inpord, inpfsz, inpasp, inptxt, plot_brush){
+                         inpsiz, inpcols, inpord, inpfsz, inpasp,inpxlim = NULL, inpylim = NULL, inptxt, inptitle,plot_brush){
     bgCells = TRUE
     rat = (max(ggData$X) - min(ggData$X)) / (max(ggData$Y) - min(ggData$Y))
-
+    if(is.null(inpxlim)) inpxlim = c(min(ggData$X), max(ggData$X))
+    if(is.null(inpylim)) inpylim = c(min(ggData$Y), max(ggData$Y))
     # Generate coex color palette
     cInp = strsplit(inpcols, "; ")[[1]]
     if(cInp[1] == "Red (Gene1)"){
@@ -500,7 +512,7 @@ scDRcoexPlot <- function(ggData, inpdrX, inpdrY,inpg1, inpg2,
     ggOut = ggOut +
         geom_point(size = inpsiz, shape = 16, color = ggData$cMix) +
         xlab(inpdrX) + ylab(inpdrY) +
-        sctheme(base_size = sList[inpfsz], XYval = inptxt) #+
+        sctheme(base_size = sList[inpfsz], XYval = inptxt, XYtitle = inptitle) #+
     guides(color = guide_colorbar(barwidth = 15))
 
     if(is.null(plot_brush) & file.exists("tempData/plot_brush_tmp.rds")) {
@@ -512,9 +524,9 @@ scDRcoexPlot <- function(ggData, inpdrX, inpdrY,inpg1, inpg2,
     }
 
     if(inpasp == "Square") {
-        ggOut = ggOut + coord_fixed(ratio = rat)
+        ggOut = ggOut + coord_fixed(ratio = rat,expand = TRUE)
     } else if(inpasp == "Fixed") {
-        ggOut = ggOut + coord_fixed()
+        ggOut = ggOut + coord_fixed(ratio = rat,xlim = inpxlim,ylim = inpylim,expand = TRUE)
     }
     return(ggOut)
 }
@@ -522,10 +534,11 @@ scDRcoexPlot <- function(ggData, inpdrX, inpdrY,inpg1, inpg2,
 
 
 scDRcoexPlot3 <- function(ggData, inpdrX, inpdrY,inpg1, inpg2,
-                          inpsiz, inpcols, inpord, inpfsz, inpasp, inptxt, plot_brush){
+                          inpsiz, inpcols, inpord, inpfsz, inpasp,inpxlim = NULL, inpylim = NULL, inptxt, inptitle,plot_brush){
     bgCells = TRUE
     rat = (max(ggData$X) - min(ggData$X)) / (max(ggData$Y) - min(ggData$Y))
-
+    if(is.null(inpxlim)) inpxlim = c(min(ggData$X), max(ggData$X))
+    if(is.null(inpylim)) inpylim = c(min(ggData$Y), max(ggData$Y))
     # Generate coex color palette
     cInp = strsplit(inpcols, "; ")[[1]] %>% gsub(" .*","",.) %>% tolower()
     gg = colorRamp2D(col1 = cInp[1], col2 = cInp[2],col3 = cInp[3], col0 = "snow2",nTot= 100)
@@ -553,8 +566,8 @@ scDRcoexPlot3 <- function(ggData, inpdrX, inpdrY,inpg1, inpg2,
     ggOut = ggOut +
         geom_point(size = inpsiz, shape = 16, color = ggData$cMix) +
         xlab(inpdrX) + ylab(inpdrY) +
-        sctheme(base_size = sList[inpfsz], XYval = inptxt)
-
+        sctheme(base_size = sList[inpfsz], XYval = inptxt, XYtitle = inptitle) #+
+    
     if(is.null(plot_brush) & file.exists("tempData/plot_brush_tmp.rds")) {
         plot_brush = readRDS(file = "tempData/plot_brush_tmp.rds")
     }
@@ -566,7 +579,7 @@ scDRcoexPlot3 <- function(ggData, inpdrX, inpdrY,inpg1, inpg2,
     if(inpasp == "Square") {
         ggOut = ggOut + coord_fixed(ratio = rat)
     } else if(inpasp == "Fixed") {
-        ggOut = ggOut + coord_fixed()
+        ggOut = ggOut + coord_fixed(ratio = rat,xlim = inpxlim,ylim = inpylim,expand = TRUE)
     }
     return(ggOut)
 }
@@ -954,15 +967,15 @@ scVioBoxDataNum <- function(ggData,inp3){
     return(ggData_num)
 }
 
-scVioBoxSig <- function(ggData,inp3,plabel,pcut){
+scVioBoxSig <- function(ggData,inp3,p.adjust.method, plabel,pcut){
         stat.test <- switch(inp3,
                             "no split" = ggData,
                                          group_by(ggData, X)) %>%
-            wilcox_test(as.formula(paste("val","~",
+            pairwise_wilcox_test(as.formula(paste("val","~",
                                          switch(inp3,
                                                 "no split" = "X",
                                                              "grpBy"))),
-                        p.adjust.method = "bonferroni") %>%
+                                 p.adjust.method = p.adjust.method) %>%
             add_significance("p") %>%
             rstatix:::remove_ns(col = plabel,
                                 signif.cutoff = switch(plabel,
@@ -1083,9 +1096,9 @@ scVioBox <- function(ggData, inpConf, inp1, inpg2, inp3,
                         stack = ifelse(inpsplit == "stack",FALSE,TRUE) )#ifelse(inpsplit == "stack",TRUE,FALSE) )
         stat.test$y.position = stat.test$y.position + (stat.test$y.position - min(stat.test$y.position)) * inpylim +
             mean(stat.test$y.position) * inppvalpos
-        ggOut = ggOut + stat_pvalue_manual(stat.test,  label = plabel, tip.length = 0.01,size = inpsiz*5)
+        ggOut = ggOut + stat_pvalue_manual(stat.test,  label = plabel, tip.length = 0.01,size = sList[inpfsz]/3)
         Ylim = max(ggOut$data$val * (1+inpylim), ifelse(inpsig,max(stat.test$y.position),0),na.rm = TRUE)
-        ggOut = ggOut + scale_y_continuous(expand = expansion(mult = c(NA, Ylim)))
+        ggOut = ggOut + scale_y_continuous(limits = c(NA, Ylim))
     }
     if(min(ggData$val) > 0) ggOut = ggOut + scale_y_continuous(limits =  c(0, NA))
     if(inppts) ggOut = ggOut + geom_jitter(size = ifelse(inppts,inpsiz,NA), shape = 19)
@@ -1811,7 +1824,7 @@ scCurvs <- function(inpConf, inpMeta, inp, inpGrp,
     return(ggOut)
 }
 
-scFindMarkers <- function(inpConf, inpMeta,
+scFindMarkers.outdate <- function(inpConf, inpMeta,
                           inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1, inpsub3_2,
                           inpident, inpident_1, inpident_2 = NULL){
     # Prepare ggData
@@ -1850,8 +1863,54 @@ scFindMarkers <- function(inpConf, inpMeta,
     write.table(info, file = "tempData/de_info.csv",quote = FALSE,row.names = F,col.names = F)
 }
 
+scFindMarkers <- function(inpH5ad, inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1, inpsub3_2,
+                          inpGrp, inpident_1, inpident_2 = NULL,inpDEmethod = "wilcoxon",returnFormat = "uns"){
+    sc <- reticulate::import("scanpy")
+    adata <- sc$read_h5ad(inpH5ad)
+    adata <- subsetAnndata(adata, inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1, inpsub3_2)
+    # prepare a info  to store different analysis conditions information
+    info = paste0(paste(inpident_1,collapse = "_")," vs ",
+                paste(inpident_2,collapse = "_"), " in ",
+                paste(paste(inpsub1_2,collapse = "_"),
+                      paste(inpsub2_2,collapse = "_"),
+                      paste(inpsub3_2,collapse = "_"),collapse = "_"),
+                " with ",inpDEmethod)
+    adata$obs[,inpGrp] %<>% as.factor()
+
+    if(adata$var_names[0]== "0") adata$var_names = adata$var[["features"]]
+    # check if any sample has less than 2 samples.
+    df <- as.data.frame(table(adata$obs[,inpGrp]))
+    shiny::validate(need(df[df$Var1 %in% inpident_1,"Freq"] >2, message = paste0("Need more than 2 samples in group one!")))
+    shiny::validate(need(df[df$Var1 %in% inpident_2,"Freq"] >2, message = paste0("Need more than 2 samples in reference group!")))
+    print("start DE")
+    
+    tryCatch({ sc$tl$rank_genes_groups(adata, groupby= inpGrp, groups = list(inpident_1), reference = inpident_2,method = inpDEmethod,
+                                       pts = TRUE, use_raw = FALSE)
+    },error=function(cond) {
+        message("rank_genes_groups fail")
+        message(cond)
+    },
+    warning=function(cond) {
+        message(cond)
+    }
+    )
+    print("DE done")
+    adata_uns <- adata$copy()
+    adata_uns$X = NULL
+    adata_uns$raw = NULL
+    adata_uns$obs = data.frame(matrix(ncol = 1, nrow = adata_uns$n_obs)) # can't assign NULL at this version
+    #adata_uns$var = data.frame(matrix(ncol = 1, nrow = adata_uns$n_vars))# can't assign NULL at this version
+    adata_uns$obsm = NULL
+    adata_uns$varm = NULL
+    adata_uns$obsp = NULL
+    adata_uns$write_h5ad("tempData/rank_genes_groups_1.h5ad")
+    write.table(info, file = "tempData/rank_genes_groups_1.csv",quote = FALSE,row.names = F,col.names = F)
+    if(returnFormat == "uns") return(adata_uns)
+}
+
+
 .checkIfIdentical <- function(inpsub1_2,inpsub2_2,inpsub3_2,inpident_1 = "",inpident_2 = "",
-                              min_expr = NULL,inpGrp = NULL,
+                              min_expr = NULL,inpGrp = NULL,inpDEmethod = NULL,
                               databases = NULL,inpdatapath = NULL,
                               file.name = "tempData/de_info.csv"){
     # prepare a info not to check if stored different analysis conditions is identical
@@ -1863,6 +1922,13 @@ scFindMarkers <- function(inpConf, inpMeta,
                                   paste(paste(inpsub1_2,collapse = "_"),
                                         paste(inpsub2_2,collapse = "_"),
                                         paste(inpsub3_2,collapse = "_"),collapse = "_")),
+                  "tempData/rank_genes_groups_1.csv" = paste0(
+                                  paste(inpident_1,collapse = "_")," vs ",
+                                  paste(inpident_2,collapse = "_"), " in ",
+                                  paste(paste(inpsub1_2,collapse = "_"),
+                                        paste(inpsub2_2,collapse = "_"),
+                                        paste(inpsub3_2,collapse = "_"),collapse = "_"),
+                                  " with ",inpDEmethod),
                   "tempData/cor_info.csv" = paste(c(
                                   paste(inpsub1_2,collapse = "_"),
                                   paste(inpsub2_2,collapse = "_"),
@@ -1885,12 +1951,28 @@ scFindMarkers <- function(inpConf, inpMeta,
 }
 
 
-
-loadDeData <- function(h5File ="tempData/scFindMarkers.h5", key = "de",inprmgene = NULL){
-    #reticulate::py_run_string("import pandas as pd")
-    pd <- reticulate::import("pandas")
-    markers = pd$read_hdf(h5File, key = key)
-
+loadDEGs <- function(adata_uns, inpGrp,inpident_1,inpident_2, inpcutp, inpcutpval, inpcutfc, inpcutpct, inprmgene = NULL){
+    sc <- reticulate::import("scanpy")
+    "loading DEGs"
+    
+    markers <- tryCatch({
+        sc$get$rank_genes_groups_df(adata_uns,group = NULL)#group =unique(adata$obs[,inpGrp]))
+    },error=function(cond) {
+        message("Anndata does not seem to exist:")
+        message(cond)
+        # Choose a return value in case of error
+        return(NA)
+    },
+    warning=function(cond) {
+        message(cond)
+        # Choose a return value in case of warning
+        return(NULL)
+    })
+    head(markers)
+    colnames(markers) = c("genes","scores","avg_log2FC", "p_val","p_val_adj","pts")
+    markers$groups = paste(paste(inpident_1,collapse = "_"),"vs.", paste(inpident_2,collapse = "_"))
+    markers = markers[markers[,inpcutp] <= inpcutpval,]
+    markers %<>% filter(abs(avg_log2FC) >= inpcutfc & pts >= inpcutpct/100)
     # remove MT, RPS and PRL genes
     if(length(inprmgene) != 0){
         if(markers$gene[1] == toupper(markers$gene[1])){
@@ -1904,10 +1986,9 @@ loadDeData <- function(h5File ="tempData/scFindMarkers.h5", key = "de",inprmgene
             grep(markers$gene,value = T)
         markers = markers[!markers$gene %in% rmgene,]
     }
-
+    
     return(markers)
 }
-
 
 scFindAllMarkers <- function(inpH5ad, inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1,
                              inpsub3_2,inpGrp, inpX = NULL, returnFormat = c("full","uns")){
@@ -1928,7 +2009,7 @@ scFindAllMarkers <- function(inpH5ad, inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,
     # check if any sample has less than 2 samples.
     df <- as.data.frame(table(adata$obs[,inpGrp]))
     adata <- subsetAnndata(adata, inpsub1_1 = inpGrp, inpsub1_2 = as.character(df$Var1[df$Freq >= 2]))
-    tryCatch({ sc$tl$rank_genes_groups(adata, groupby=inpGrp, method='wilcoxon',pts = TRUE)
+    tryCatch({ sc$tl$rank_genes_groups(adata, groupby=inpGrp, method='wilcoxon',pts = TRUE, use_raw = FALSE)
     },error=function(cond) {
         message("rank_genes_groups fail")
         message(cond)
@@ -1940,23 +2021,23 @@ scFindAllMarkers <- function(inpH5ad, inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,
     print("DE done")
     adata_uns <- adata$copy()
     adata_uns$X = NULL
+    adata_uns$raw = NULL
     adata_uns$obs = data.frame(matrix(ncol = 1, nrow = adata_uns$n_obs)) # can't assign NULL at this version
-    adata_uns$var = data.frame(matrix(ncol = 1, nrow = adata_uns$n_vars))# can't assign NULL at this version
+    #adata_uns$var = data.frame(matrix(ncol = 1, nrow = adata_uns$n_vars))# can't assign NULL at this version
     adata_uns$obsm = NULL
     adata_uns$varm = NULL
     adata_uns$obsp = NULL
-
     adata_uns$write_h5ad("tempData/rank_genes_groups.h5ad")
     write.table(info, file = "tempData/rank_genes_groups.csv",quote = FALSE,row.names = F,col.names = F)
     if(returnFormat == "full") return(adata)
     if(returnFormat == "uns") return(adata_uns)
 }
 
-LoadAnndata <- function(inpH5ad, inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1,
+LoadAnndata <- function(adata_uns, inpsub1_1, inpsub1_2,inpsub2_1, inpsub2_2,inpsub3_1,
                              inpsub3_2,inpGrp, inpX = NULL){
     sc <- reticulate::import("scanpy")
-    adata_degs = sc$read_h5ad("tempData/rank_genes_groups.h5ad")
-    adata <- sc$read_h5ad(inpH5ad)
+    adata_degs = sc$read_h5ad(file.path("tempData",adata_uns))
+    adata <- sc$read_h5ad("sc1csr_gexpr.h5ad")
     adata <- subsetAnndata(adata,
                               inpsub1_1, inpsub1_2, inpsub2_1, inpsub2_2,
                               inpsub3_1, inpsub3_2)
@@ -2017,51 +2098,52 @@ saveRankGenesGroupsFigure <- function(adata,inpPlt, inpGrp, inpX,
     reticulate::py_run_string("import scanpy as sc")
     assign("adata", adata, envir = globalenv())
     if(inpPlt == "Correlation Matrix") {
-        reticulate::py_run_string(paste0("r.adata.obs['",inpGrp,"'] = r.adata.obs['",inpGrp,"'].astype('category')"))
+        reticulate::py_run_string(paste0("r.adata.obs[",inpGrp,"] = r.adata.obs[",inpGrp,"].astype('category')"))
         reticulate::py_run_string(paste0("sc.tl.dendrogram(r.adata, groupby = ",inpGrp,")"))
     }
     if(is.null(inpX)) {
         inpX = "None"
     } else inpX = paste0("['",paste(inpX,collapse = "', '"),"']")
-    args_list <- list(c(", groups = ",inpX),
-                      c(", groupby = ",inpGrp),
-                      c(", n_genes = ",inptop),
-                      c(", values_to_plot = ",inpvalToPlot),
-                      c(", min_logfoldchange = ",inpcutfc),
-                      c(", expression_cutoff = ",inpcutpct/100),
-                      c(", cmap = ",inpcols),
-                      c(", dendrogram = ",inpdendro),
-                      c(", swap_axes = ",inpflpxy),
-                      c(", var_group_rotation = ",inpfrt),
-                      c(", return_fig = False"),
-                      c(", save ='.png'",
+    args_list <- list(c(", groups = ",inpX),#1
+                      c(", groupby = ",inpGrp),#2
+                      c(", n_genes = ",inptop),#3
+                      c(", values_to_plot = ",inpvalToPlot),#4
+                      c(", min_logfoldchange = ",inpcutfc),#5
+                      c(", expression_cutoff = ",inpcutpct/100),#6
+                      c(", cmap = ",inpcols),#7
+                      c(", dendrogram = ",inpdendro),#8
+                      c(", swap_axes = ",inpflpxy),#9
+                      c(", var_group_rotation = ",inpfrt),#10
+                      c(", return_fig = False"),#11
+                      c(", use_raw = False"),#12
+                      c(", save ='.png'",#13
                         ", show = False)"))
 
     py_script = switch(inpPlt,
                        "Rank_genes"         =  paste0("sc.pl.rank_genes_groups(r.adata",
-                                                      paste(unlist(args_list[1:12]),collapse = "")),
+                                                      paste(unlist(args_list[1:13]),collapse = "")),
                        "Dotplot"            =  paste0("sc.pl.rank_genes_groups_dotplot(r.adata",
-                                                      paste(unlist(args_list[1:12]),collapse = "")),
+                                                      paste(unlist(args_list[1:13]),collapse = "")),
                        "MatrixPlot"         =  paste0("sc.pl.rank_genes_groups_matrixplot(r.adata",
-                                                      paste(unlist(args_list[c(1:5,7:12)]),collapse = "")),
+                                                      paste(unlist(args_list[c(1:5,7:13)]),collapse = "")),
                        "Stacked Violin"     =  paste0("sc.pl.rank_genes_groups_stacked_violin(r.adata",
-                                                      paste(unlist(args_list[1:12]),collapse = "")),
+                                                      paste(unlist(args_list[1:13]),collapse = "")),
                        "Heatmap"            =  paste0("sc.pl.rank_genes_groups_heatmap(r.adata",
-                                                      paste(unlist(args_list[c(1:5,7:12)]),collapse = "")),
+                                                      paste(unlist(args_list[c(1:5,7:13)]),collapse = "")),
                        "TracksPlot"         =  paste0("sc.pl.rank_genes_groups_tracksplot(r.adata",
-                                                      paste(unlist(args_list[1:12]),collapse = "")),
+                                                      paste(unlist(args_list[1:13]),collapse = "")),
                        "Correlation Matrix" =  paste0("sc.pl.correlation_matrix(r.adata",
-                                                      paste(unlist(args_list[c(2,7,8,12)]),collapse = ""))
+                                                      paste(unlist(args_list[c(2,7,8,13)]),collapse = ""))
     )
     reticulate::py_run_string(py_script)
 }
 
 
-loadAllDEGs <- function(adata, inpGrp,inpcutp, inpcutpval, inpcutfc, inpcutpct, inprmgene = NULL){
+loadAllDEGs <- function(adata_uns, inpGrp,inpcutp, inpcutpval, inpcutfc, inpcutpct, inprmgene = NULL){
 
     sc <- reticulate::import("scanpy")
     markers <- tryCatch({
-        sc$get$rank_genes_groups_df(adata,group = NULL)#group =unique(adata$obs[,inpGrp]))
+        sc$get$rank_genes_groups_df(adata_uns,group = NULL)#group =unique(adata$obs[,inpGrp]))
     },error=function(cond) {
         message("Anndata does not seem to exist:")
         message(cond)
@@ -2247,14 +2329,21 @@ df2list <- function(df){
     return(list)
 }
 
-#' fgseaDendrogram function will re-organze the dataframe rows and columns if need
-#' @param fgsea_Res fgsea resutls from fgseaRes()
-#' @param inpgscutpadj geneset padj cut off
-#' @param inpgscutpval geneset p-value cut off
-#' @param Rowv determines if and how the row dendrogram should be computed and reordered. Similar to Rowv from stats:heatmap
-#' @param Colv determines if and how the column dendrogram should be reordered. Similar to Colv from stats:heatmap
-#' @param order.yaxis order rows(y axis) by specified groups,overwrite Rowv = TRUE
-#' @return fgsea_Res fgsea resutls in data.frame with multiple groups and mulitple databases
+#' fgseaDendrogram function This function takes the results of running fgsea algorithm and filters the pathways 
+#' based on specified cutoffs for p-values and adjusted p-values. 
+#' The function then prepares a dendrogram for the pathways and groups based on the specified clustering options.
+#' If the inpX argument is not NULL, the function filters the results to include only the specified groups.
+#' The function also allows the user to order the pathways based on their NES values 
+#' for a specific group or to use the default ordering based on the dendrogram.
+#' The function returns the filtered and reordered data frame.
+#' @param fgsea_Res fgsea resutls from fgseaRes(). A data frame containing the results of running fgsea algorithm. The data frame should contain at least 3 columns: "pathway" (character), "NES" (numeric), and "group" (character).
+#' @param inpgscutpadj A numeric value specifying the adjusted p-value cutoff for filtering pathways.
+#' @param inpgscutpval A numeric value specifying the p-value cutoff for filtering pathways.
+#' @param Rowv A logical value indicating whether to cluster rows (pathways) or not. Default is TRUE. Similar to Rowv from stats:heatmap
+#' @param Colv A logical value indicating whether to cluster columns (groups) or not. Default is TRUE. Similar to Colv from stats:heatmap
+#' @param order_row A character value specifying the group to order pathways based on their NES values. Default is "None".
+#' @param inpX A character vector specifying the group names to include in the analysis. Default is NULL.
+#' @return fgsea_Res A filtered and reordered data frame containing the results of running fgsea algorithm based on the specified cutoffs and dendrogram ordering.
 #' @example fgsea_Res <- fgseaDendrogram(fgsea_Res)
 
 
@@ -2268,6 +2357,8 @@ fgseaDendrogram <- function(fgsea_Res, inpgscutpadj = 0.25, inpgscutpval = 0.05,
         fgsea_Res[,"group"] %<>% factor(levels = inpX)
         #fgsea_Res %<>% with(fgsea_Res[order(pathway,group),])
     }
+    shiny::validate(need(length(unique(fgsea_Res$group)) > 1, "Dotplot need at least two groups. Do you want to try Barplot?"))
+    
     fgsea_Res %<>% filter(padj < inpgscutpadj & pval < inpgscutpval)
 
     # prepare dendrogram ==================
@@ -2311,6 +2402,35 @@ fgseaDendrogram <- function(fgsea_Res, inpgscutpadj = 0.25, inpgscutpval = 0.05,
 }
 
 
+
+
+#' @param fgsea_Res fgsea resutls from fgseaRes(). A data frame containing the results of running fgsea algorithm. The data frame should contain at least 3 columns: "pathway" (character), "NES" (numeric), and "group" (character).
+#' @param inpgscutpadj A numeric value specifying the adjusted p-value cutoff for filtering pathways.
+#' @param inpgscutpval A numeric value specifying the p-value cutoff for filtering pathways.
+#' @param order_row A character value specifying the group to order pathways based on their NES values. Default is "None".
+#' @param inpX A character vector specifying the group names to include in the analysis. Default is NULL.
+#' @return fgsea_Res A filtered and reordered data frame containing the results of running fgsea algorithm based on the specified cutoffs and dendrogram ordering.
+#' @example fgsea_Res <- fgseaSort(fgsea_Res)
+#' 
+
+fgseaSort <- function(fgsea_Res, inpgscutpadj = 0.25, inpgscutpval = 0.05,
+                            order_row = "None",
+                            inpX = NULL){
+    if(!is.null(inpX)) {
+        fgsea_Res %<>% filter(group %in% inpX)
+    }
+    fgsea_Res %<>% filter(padj < inpgscutpadj & pval < inpgscutpval)
+    if(order_row != "None"){
+        fgsea_Res %<>% filter(group %in% order_row)
+    }
+    
+    shiny::validate(need(length(unique(fgsea_Res$group)) == 1, "Barbplot need specify one group. Do you want to try Dotplot?"))
+    fgsea_Res %<>% arrange(NES)
+    
+    return(fgsea_Res)
+}
+
+
 #' FgseaDotPlot generate Dot plot using findmarker results and fgsea
 #' @param fgsea_Res Seurat findmarker results, data frame with c("gene","avg_log2FC","clusters") columns
 #' @param pathways pathway list
@@ -2336,7 +2456,7 @@ fgseaDendrogram <- function(fgsea_Res, inpgscutpadj = 0.25, inpgscutpval = 0.05,
 FgseaDotPlot <- function(fgsea_Res, inpvalToPlot = " -log10(pval)",
                          scale.by =c('size','radius')[1],
                          fill = "NES",
-                         cols = pal_gsea()(12),
+                         cols = pal_gsea()(12),inpfullrange = FALSE,inpcircle =TRUE, inppsz = 5,
                          inpfsz = "Small",inpflpxy = FALSE,
                          verbose=T,inpfrt=45,...){
 
@@ -2360,12 +2480,15 @@ FgseaDotPlot <- function(fgsea_Res, inpvalToPlot = " -log10(pval)",
     )
     plot <- ggplot(data = fgsea_Res, mapping = aes_string(x = "group", y = "pathway")) +
         geom_point(mapping = aes_string(size = inpvalToPlot, fill = fill),
-                   color = "black", pch=21) +
-        scale.func(range = c(1, 5)) +
+                   color = ifelse(inpcircle,"black","white"), 
+                   pch=21) +
+        scale.func(range = c(1, as.numeric(inppsz))) +
         labs(x = "",y = "")+
+        #sctheme(base_size = sList[inpfsz])+
         theme_bw(base_size = sList[inpfsz],base_family = "Avenir") +
-        scale_fill_gradientn(colors = rescale_colors(cols = cols,
-                                                     Range = range(fgsea_Res[,fill], na.rm = T)))+#RPMG::SHOWPAL(ggsci::pal_gsea()(12))
+        scale_fill_gradientn(colors = if(inpfullrange) cols else{
+                                        rescale_colors(cols = cols,Range = range(fgsea_Res[,fill], na.rm = T))
+                                        })+#RPMG::SHOWPAL(ggsci::pal_gsea()(12))
         theme(axis.title.x = element_blank(), axis.title.y = element_blank(),
               axis.text.x =    element_text(angle = as.numeric(inpfrt),
                                             hjust = switch (as.character(inpfrt),
@@ -2388,133 +2511,47 @@ FgseaDotPlot <- function(fgsea_Res, inpvalToPlot = " -log10(pval)",
     return(plot)
 }
 
-#' enrichrDotPlot generate Dot plot using findallmarker results and enrichr
-#' @param enrichrRes Seurat enrichR results, data frame including c("Term','Overlap','P.value','Adjusted.P.value',
-#' 'Odds.Ratio','Combined.Score','Genes','library','group") and other columns
-#' @param cols dot color spectrum
-#' @param Rowv determines if and how the row dendrogram should be reordered.
-#' By default, NULL or FALSE, then no dendrogram is computed and no reordering is done.
-#' If a vector of integers, then dendrogram is computed and reordered based on the order of the vector.
-#' @param Colv 	determines if and how the column dendrogram should be reordered.
-#' Has the options as the Rowv argument above.
-#' @param title add to title names
-#' @param padj padj cut off
-#' @param pval pval cut off
-#' @param order.yaxis.by c(1,"pval") means order y axis by pval in group 1
-#' @param order.yaxis specify order of y axis
-#' @param order.xaxis specify order of x axis
-#' @param do.return return fgsea data frame
-#' @param return.raw return fgsea raw data
-#' @param return.plot return fgsea plot
-#' @export save.path folder to save
-#' @param ... ggplot theme param
-#' @example FgseaDotPlot(stats=res, pathways=hallmark,title = "each B_MCL groups")
-enrichrDotPlot <- function(enrichr_Res,
-                           size = " -log10(padj)",
-                           scale.by =c('size','radius')[1],
-                           font.ytickslab = 15,
-                           fill = "Combined.Score", title="",
-                           cols = pal_gsea()(12),
-                           Rowv = FALSE,Colv = FALSE,
-                           order.yaxis = NULL,
-                           order.xaxis = NULL,
-                           padj = 0.25, pval=0.05,
-                           do.return = F,return.raw = F,return.plot = F,
-                           font.main = 18,
-                           verbose=T,save.path = NULL, file.name = NULL,
-                           units = "in",width=10, height=7,hjust=0.5,angle=0,...){
-
-    df_enrichrRes <- dplyr::bind_rows(enrichr_Res) %>% as.data.frame()
-    if(nrow(df_enrichrRes) == 0) stop("No significant pathway! Try higher p-value!")
-    df_enrichrRes = df_enrichrRes[!is.na(df_enrichrRes[, "database"]),]
-    df_enrichrRes[," -log10(pval)"] = -log10(df_enrichrRes$P.value)
-    df_enrichrRes[," -log10(padj)"] = -log10(df_enrichrRes$Adjusted.P.value)
-    if(verbose) print(round(dim(df_enrichrRes)/length(clusters)))
-    mtx_enrichrRes <- df_enrichrRes[,c("pathway","NES","cluster")]
-    mtx_enrichrRes %<>% tidyr::spread(cluster,NES)
-    rownames(mtx_enrichrRes) = mtx_enrichrRes[,"pathway"]
-    mtx_enrichrRes[is.na(mtx_enrichrRes)] = 0
 
 
-    if(isTRUE(Rowv) | isTRUE(Colv)) {
-        mtx_enrichrRes = mtx_enrichrRes[,-grep("pathway",colnames(mtx_enrichrRes))]
-        mtx_enrichrRes %<>% as.matrix()
-        mtx_enrichrRes[is.na(mtx_enrichrRes)] = 0
-    }
-    if(is.null(order.yaxis)){
-        if(isTRUE(Rowv)) {
-            hcr <- hclust(as.dist(1-cor(t(mtx_enrichrRes), method="spearman")),
-                          method="ward.D2")
-            ddr <- as.dendrogram(hcr)
-            rowInd <- order.dendrogram(ddr)
-            order.yaxis = rownames(mtx_enrichrRes)[rowInd]
-        } else {
-            order.yaxis = rownames(mtx_enrichrRes)
-            order.yaxis = order.yaxis[order.yaxis %in% df_enrichrRes[,"pathway"]]
-        }
-    }
-    order.yaxis = order.yaxis[order.yaxis %in% rownames(mtx_enrichrRes)]
-    df_enrichrRes %<>% filter(pathway %in% order.yaxis)
-    df_enrichrRes[,"pathway"] %<>% factor(levels = rev(order.yaxis))
-
-    if(isTRUE(Colv)) {
-        hcc <- hclust(as.dist(1-cor(mtx_enrichrRes, method="spearman")),
-                      method="ward.D2")
-        ddc <- as.dendrogram(hcc)
-        colInd <- order.dendrogram(ddc)
-        order.xaxis = colnames(mtx_enrichrRes)[colInd]
-    }
-    if(!is.null(order.xaxis)) {
-        order.xaxis = order.xaxis[order.xaxis %in% df_enrichrRes[,"cluster"]]
-        df_enrichrRes %<>% filter(cluster %in% order.xaxis)
-        df_enrichrRes[,"cluster"] %<>% factor(levels = order.xaxis)
-        df_enrichrRes %<>% with(df_enrichrRes[order(pathway,cluster),])
-    }
-    # generate color pal_gsea scale based on NES range.
-    rescale_colors <- function(cols = cols, Range = range(df_enrichrRes$NES, na.rm = T)){
-        n = round(length(cols)/2)
-        if(Range[1]>0) return(cols[(n+1):(2*n)])
-        if(Range[2]<0) return(cols[1:n])
-        if(Range[1]<0 & Range[2]>0) {
-            remove <- (Range[2] +Range[1]) / (Range[2] -Range[1])
-            if(remove>0) return(cols[max(1,2*n*remove):(2*n)])
-            if(remove<0) return(cols[1:(2*n+min(-1,2*n*remove)+1)])
-        }
-    }
-    #font.ytickslab= min(font.ytickslab,round(height*300/dim(df_enrichrRes)[1]))
-    scale.func <- switch(
-        EXPR = scale.by,
-        'size' = scale_size,
-        'radius' = scale_radius,
-        stop("'scale.by' must be either 'size' or 'radius'")
-    )
-    plot <- ggplot(data = df_enrichrRes, mapping = aes_string(x = "cluster", y = "pathway")) +
-        geom_point(mapping = aes_string(size = size, fill = fill),
-                   color = "black", pch=21) +
-        scale.func(range = c(1, 5)) +
-        ggtitle(title)+
-        theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
-        labs(x = "",y = "")+
-        theme_bw() +
-        theme(...)+
-        scale_fill_gradientn(colors = rescale_colors(cols = cols,
-                                                     Range = range(df_enrichrRes[,fill], na.rm = T))) #RPMG::SHOWPAL(ggsci::pal_gsea()(12))
-
-    if(size %in% c("padj", "pval")) plot = plot + scale.func(breaks=c(0,0.05,0.10,0.15,0.2,0.25),
-                                                             labels=rev(c(0,0.05,0.10,0.15,0.2,0.25)))
-    if(size %in% c(" -log10(padj)", " -log10(pval)")) plot = plot + scale.func(breaks=c(1,2,5,10,20,30,40),
-                                                                               labels=c(1,2,5,10,20,30,40))
-    return(plot)
-
-
-    if(do.return & return.raw) {
-        return(enrichrRes)
-    } else if(do.return) {
-        df_enrichrRes %<>% filter(pathway %in% order.yaxis)
-        df_enrichrRes$pathway %<>% factor(levels = order.yaxis)
-        return(df_enrichrRes)
-    }
+#' @param stats Seurat findAllmarker output
+#' @param pathways pathway list
+#' @param title sample names in title
+FgseaBarplot <- function(fgsea_Res, fill = "NES",
+                         inpcols = pal_gsea()(12),inputcolinv =  FALSE,
+                         inpfsz = "Small",inpflpxy = FALSE,inpfrt = 0,
+                         verbose=T){
+    fgsea_Res$sign <- ifelse(fgsea_Res$NES >0,"Upregulated", "Downregulated")
+    fgsea_Res$sign %<>% factor(levels = c("Upregulated", "Downregulated"))
+    g <- ggbarplot(fgsea_Res,
+                 x = "pathway",
+                 y = fill,
+                 fill = "sign",           # change fill color by mpg_level
+                 color = "white",            # Set bar border colors to white
+                 rotate = inpflpxy,
+                 palette = inpcols,            # jco journal color palett. see ?ggpar
+                 sort.val = "asc",          # Sort the value in descending order
+                 sort.by.groups = FALSE,     # Don't sort inside each group
+                 ylab = 'Normalized Enrichment Score',
+                 legend.title = "")+
+        #guides(fill = guide_legend(reverse = TRUE))+
+        theme_bw(base_size = sList[inpfsz],base_family = "Avenir")+
+        theme(axis.title.y = element_blank(),
+              axis.text.x =    element_text(angle = as.numeric(inpfrt),
+                                            hjust = switch (as.character(inpfrt),
+                                                            "0" = 0.5,
+                                                            "30" = 1,
+                                                            "45" = 1,
+                                                            "90" = 0
+                                            ),
+                                            vjust = switch (as.character(inpfrt),
+                                                            "0" = 0,
+                                                            "30" = 1,
+                                                            "45" = 1,
+                                                            "90" = 0.5)
+              ))
+    return(g)
 }
+
 
 #' laod correlation data by single gene
 loadCorDataGene <- function(inpH5 = "tempData/scFindCor.h5",featureFile= "tempData/CorFeatures.rds", gene = ""){
@@ -2642,7 +2679,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
     if(inputcolinv) cols = rev(cols)
     cols.order =c("Most Down","Down","Stable","Up","Most Up")
     names(cols) = cols.order
-    if(inplegpos == "right") cols.order = rev(cols.order)
+    #if(inplegpos == "right") cols.order = rev(cols.order)
     ggData[,paste0("log10_",inpcutp)] = -log10(ggData[,inpcutp])
     inf = is.infinite(ggData[,paste0("log10_",inpcutp)])
     ggData[inf,paste0("log10_",inpcutp)] = 337
@@ -2651,7 +2688,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
     inpcutfc %<>% as.numeric()
     inpcutfc %<>% as.numeric()
     inpcutptc %<>% as.numeric()
-    ggData %<>% filter(pct.1 > inpcutptc/100)
+    ggData %<>% filter(pts > inpcutptc/100)
     ggData[ggData[,inpcutp] <= inpcutpval & ggData$avg_log2FC > 0,"change"] = "Up"
     ggData[ggData[,inpcutp] <= inpcutpval & ggData$avg_log2FC < 0,"change"] = "Down"
 
@@ -2659,7 +2696,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
     ggData[ggData$avg_log2FC < -inpcutfc & ggData[,inpcutp]  < inpcutpval,"change"] = "Most Down"
 
     ggData$change %<>% factor(levels = cols.order)
-    colnames(ggData)[grep("cluster",colnames(ggData))]="cluster"
+    colnames(ggData)[grep("cluster",colnames(ggData))]="groups"
     # 将需要标记的基因放置在单独的数组
     Up <- ggData[ggData$change %in% "Most Up",]
     Down <- ggData[ggData$change %in% "Most Down",]
@@ -2676,8 +2713,8 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
     if(length(Up_gene_index) >inptop) Up_gene_index = head(Up_gene_index,inptop)
     if(length(Down_gene_index) >inptop) Down_gene_index = tail(Down_gene_index,inptop)
     # prepare title
-    cluster = stringr::str_split(ggData$cluster[1],patter = " vs.")[[1]]
-    cluster = paste(rev(cluster),collapse = " <----    ----> ")
+    groups = stringr::str_split(ggData$groups[1],patter = " vs.")[[1]]
+    groups = paste(rev(groups),collapse = " <----    ----> ")
     subtitle = paste(c(paste(inpsub1_2,collapse = "."),
                        paste(inpsub2_2,collapse = "."),
                        paste(inpsub3_2,collapse = ".")),collapse = " ")
@@ -2689,7 +2726,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
                              y = paste0("log10_",inpcutp),
                              fill = "change"))+
         geom_point(alpha= inpalpha,size=inppsz,color = "black", pch=21)+
-        ggtitle(label = paste(c(cluster,subtitle),collapse = " \n in "))
+        ggtitle(label = paste(c(groups,subtitle),collapse = " \n in "))
 
     # 辅助线
     ggOut = ggOut + geom_vline(xintercept=c(-inpcutfc,inpcutfc),lty=4,col="black",lwd=0.8)
@@ -2721,7 +2758,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
                                "black text" = geom_text_repel(data = lab_data,
                                                               aes_string(x = "avg_log2FC",
                                                                          y = paste0("log10_",inpcutp),
-                                                                         label = "gene"),
+                                                                         label = "genes"),
                                                               colour = "grey10",
                                                               alpha = inpalpha,
                                                               bg.color = "grey95", bg.r = 0.15,
@@ -2731,7 +2768,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
                                "black labels" = geom_label_repel(data = lab_data,
                                                                  aes_string(x = "avg_log2FC",
                                                                             y = paste0("log10_",inpcutp),
-                                                                            label = "gene"),
+                                                                            label = "genes"),
                                                                  colour = "grey10",
                                                                  fill = "white",
                                                                  alpha = inpalpha,
@@ -2741,7 +2778,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
                                "color text" = geom_text_repel(data = lab_data,
                                                               aes_string(x = "avg_log2FC",
                                                                          y = paste0("log10_",inpcutp),
-                                                                         label = "gene"),
+                                                                         label = "genes"),
                                                               colour = lab_data$change,
                                                               bg.color = "grey95", bg.r = 0.15,
                                                               alpha = inpalpha,
@@ -2751,7 +2788,7 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
                                "color labels" = geom_label_repel(data = lab_data,
                                                                  aes_string(x = "avg_log2FC",
                                                                             y = paste0("log10_",inpcutp),
-                                                                            label = "gene"),
+                                                                            label = "genes"),
                                                                  colour = lab_data$change,
                                                                  fill = "white",
                                                                  alpha = inpalpha,
@@ -2761,21 +2798,21 @@ VolcanoPlots <- function(ggData, inp, inpGene,inpsub1_2,inpsub2_2,inpsub3_2,
 
         )
     }
-    if(inplab2 != "No labels" & any(geneList$gene %in% ggData$gene)){
+    if(inplab2 != "No labels" & any(geneList$gene %in% ggData$genes)){
         ggOut = ggOut + switch(inplab2,
-                               "red text" = geom_text_repel(data = ggData[ggData$gene %in% geneList$gene,],
+                               "red text" = geom_text_repel(data = ggData[ggData$genes %in% geneList$gene,],
                                                               aes_string(x = "avg_log2FC",
                                                                          y = paste0("log10_",inpcutp),
-                                                                         label = "gene"),
+                                                                         label = "genes"),
                                                               colour = "red",
                                                               force = 5,
                                                               box.padding = unit(0.5, "lines"),
                                                               point.padding = unit(0.8, "lines"),
                                                               size = lList[inpfsz], seed = 42),
-                               "red labels" = geom_label_repel(data = ggData[ggData$gene %in% geneList$gene,],
+                               "red labels" = geom_label_repel(data = ggData[ggData$genes %in% geneList$gene,],
                                                                  aes_string(x = "avg_log2FC",
                                                                             y = paste0("log10_",inpcutp),
-                                                                            label = "gene"),
+                                                                            label = "genes"),
                                                                  colour = "red",
                                                                  fill = "white",
                                                                  force = 5,

@@ -1,4 +1,4 @@
-options(repos = BiocManager::repositories()) # in console
+if(Biobase::testBioCConnection()) options(repos = BiocManager::repositories()) #for publish
 source("util.R")
 # https://github.com/ranikay/shiny-reticulate-app
 # Define any Python packages needed for the app here:
@@ -11,7 +11,7 @@ sc1meta = readRDS("sc1meta.rds")
 sc1max = readRDS("sc1maxlvl.rds")
 
 # Edit this name if desired when starting a new app
-VIRTUALENV_NAME = 'ShinyCell'
+VIRTUALENV_NAME = 'pyShinyCell'
 ### Start server code
 
 shinyServer(function(input, output, session) {
@@ -37,11 +37,11 @@ shinyServer(function(input, output, session) {
         Sys.setenv(VIRTUALENV_NAME = VIRTUALENV_NAME) # exclude '/' => installs into ~/.virtualenvs/
         # RETICULATE_PYTHON is not required locally, RStudio infers it based on the ~/.virtualenvs path
     }
-    if(!"ShinyCell" %in% reticulate::virtualenv_list()) reticulate::virtualenv_create(envname = VIRTUALENV_NAME,
+    if(!"pyShinyCell" %in% reticulate::virtualenv_list()) reticulate::virtualenv_create(envname = VIRTUALENV_NAME,
                                                                                       packages = c("pip","wheel","setuptools","Cython"),
                                                                                       python = Sys.getenv('PYTHON_PATH'))
     reticulate::use_virtualenv(VIRTUALENV_NAME, required = T)
-    pyListPackages <- reticulate::py_list_packages()
+    pyListPackages <- reticulate::py_list_packages(envname = VIRTUALENV_NAME)
     unavaiblePacakges <- PYTHON_DEPENDENCIES[!PYTHON_DEPENDENCIES %in% pyListPackages$package]
     if(length(unavaiblePacakges) > 0) {
         reticulate::virtualenv_install(VIRTUALENV_NAME, packages = unavaiblePacakges, ignore_installed=FALSE)
@@ -94,10 +94,23 @@ shinyServer(function(input, output, session) {
         checkboxGroupInput("sc1a0sub3_2", "Further select which cells to show", inline = TRUE,
                            choices = sub, selected = NULL)
     })
-    shinyjs::onclick("sc1a0tog5",
-                     shinyjs::toggle(id = "sc1a0tog5_open", anim = TRUE))
-    shinyjs::onclick("sc1a0tog6",
-                     shinyjs::toggle(id = "sc1a0tog6_open", anim = TRUE))
+    observe({ switch(input$sc1a0asp,
+                     "Fixed" = shinyjs::toggle(id = "sc1a0tog5_open",anim = TRUE, condition = TRUE),
+                     shinyjs::toggle(id = "sc1a0tog5_open",anim = TRUE, condition = FALSE))
+        })
+    observe({ switch(input$sc1a0lab1,
+                     "No labels" = shinyjs::toggle(id = "sc1a0tog6_open",anim = TRUE, condition = FALSE),
+                     shinyjs::toggle(id = "sc1a0tog6_open",anim = TRUE, condition = TRUE))
+    })
+    
+    observe({
+            maxoverlaps <- length(strsplit(sc1conf[UI == input$sc1a0inp1]$fCL,"\\|")[[1]])
+            updateSliderInput(session, "sc1a0overlaps", max = maxoverlaps)
+    })
+    
+    
+    shinyjs::onclick("sc1a0tog7",
+                     shinyjs::toggleElement(id = "sc1a0tog7_open", time = 0,anim = TRUE))
     sc1a0col1.choices = reactive({
         grp = as.character(sc1conf[UI == input$sc1a0inp1]$grp)
         color.category = switch(grp,"TRUE"="qual","FALSE" = c("seq","div"))
@@ -118,9 +131,9 @@ shinyServer(function(input, output, session) {
         scDRcell(sc1conf, sc1meta, input$sc1a0drX, input$sc1a0drY, input$sc1a0inp1, input$sc1a0inpsplt,
                  input$sc1a0sub1_1, input$sc1a0sub1_2, input$sc1a0sub2_1, input$sc1a0sub2_2,input$sc1a0sub3_1, input$sc1a0sub3_2,
                  input$sc1a0siz, input$sc1a0col1, input$sc1a0ord1,
-                 input$sc1a0fsz, input$sc1a0asp, input$sc1a0txt, input$sc1a0lab1,input$sc1a0leg,input$sc1a0legpos,
+                 input$sc1a0fsz, input$sc1a0asp, input$sc1a0txt, input$sc1a0title, input$sc1a0lab1,input$sc1a0leg,input$sc1a0legpos,
                  input$sc1a0arrange, input$sc1a0xlim, input$sc1a0ylim, input$sc1a0mintxt, input$sc1a0alpha,
-                 input$sc1a0bg)
+                 input$sc1a0bg, inpmaxoverlaps = input$sc1a0overlaps)
     })
     output$sc1a0oup1 <- renderPlot({sc1a0oup1()})
     output$sc1a0oup1.ui <- renderUI({
@@ -146,15 +159,26 @@ shinyServer(function(input, output, session) {
         filename = function() { "csr_gexpr.h5ad" },
         content = function(file) { file.copy("sc1csr_gexpr.h5ad", file)
         })
+    sc1a0ggData <- reactive({
+        scDRcellnum(sc1conf, sc1meta, input$sc1a0inp1, input$sc1a0inpsplt,
+                    input$sc1a0sub1_1, input$sc1a0sub1_2, input$sc1a0sub2_1, input$sc1a0sub2_2,
+                    input$sc1a0sub3_1, input$sc1a0sub3_2)
+    })
     output$sc1a0.dt <- renderDataTable({
-        ggData = scDRcellnum(sc1conf, sc1meta, input$sc1a0inp1, input$sc1a0inpsplt,
-                            input$sc1a0sub1_1, input$sc1a0sub1_2, input$sc1a0sub2_1, input$sc1a0sub2_2,
-                             input$sc1a0sub3_1, input$sc1a0sub3_2)
-        datatable(ggData, rownames = FALSE, extensions = "Buttons",
+        datatable(sc1a0ggData(), rownames = FALSE, extensions = "Buttons",
                             options = list(pageLength = -1, dom = "tB",
                                            columnDefs = list(list(className = 'dt-center', targets = "_all")),
-                                           buttons = c("copy", "csv", "excel")))
+                                           buttons = c("copy")))
     })
+    output$sc1a0oup.csv <- downloadHandler(
+        filename = function() { paste0("sc1",input$sc1a0drX,"_",input$sc1a0drY,"_",input$sc1a0inp1,".csv") },
+        content = function(file) { write.csv(x = sc1a0ggData(), file)
+        })
+    output$sc1a0oup.xlsx <- downloadHandler(
+        filename = function() { paste0("sc1",input$sc1a0drX,"_",input$sc1a0drY,"_",input$sc1a0inp1,".xlsx") },
+        content = function(file) { write.xlsx(x = sc1a0ggData(), file,
+                                              colNames = TRUE, borders = "surrounding")
+        })
 
     ### Plots for tab a1 ##########################################################
     output$sc1a1sub1.ui <- renderUI({
@@ -179,6 +203,22 @@ shinyServer(function(input, output, session) {
         selectInput("sc1a1bg", "Select a background color",
                     choices= unique(c(bg,"snow3","lightgrey","lightgrey","grey"),selected=bg))
     })
+    observe({ switch(input$sc1a1asp1,
+                     "Fixed" = shinyjs::toggle(id = "sc1a1tog6_open",anim = TRUE, condition = TRUE),
+                     shinyjs::toggle(id = "sc1a1tog6_open",anim = TRUE, condition = FALSE))
+    })
+    sc1a1xlim <- reactive({range(sc1meta[,sc1conf[UI == input$sc1a0drX]$ID,with = FALSE])})
+    sc1a1ylim <- reactive({range(sc1meta[,sc1conf[UI == input$sc1a0drY]$ID,with = FALSE])})
+    
+    observe({
+        # Control the value, min, max, and step.
+        # Step size is 2 when input value is even; 1 when value is odd.
+        updateSliderInput(session, "sc1a1xlim", value = xlim,
+                          min = floor(sc1a1xlim()[1]), max = ceiling(sc1a1xlim()[2]))
+        updateSliderInput(session, "sc1a1ylim", value = xlim,
+                          min = floor(sc1a1ylim()[1]), max = ceiling(sc1a1ylim()[2]))
+    })
+    
     sc1a1Data <- reactive({
         scDRgeneData(sc1conf, sc1meta, sc1max, input$sc1a1drX, input$sc1a1drY, input$sc1a1inpg1,input$sc1a1inpsplt,
                  input$sc1a1grp,input$sc1a1sub1_1, input$sc1a1sub1_2, input$sc1a1sub2_1, input$sc1a1sub2_2, input$sc1a1sub3_1, input$sc1a1sub3_2,
@@ -187,8 +227,9 @@ shinyServer(function(input, output, session) {
     sc1a1oup1 <- reactive({
         scDRgene(sc1a1Data(), sc1conf, sc1max, input$sc1a1drX, input$sc1a1drY, input$sc1a1inpg1,input$sc1a1inpsplt,
                  input$sc1a1siz, input$sc1a1max,input$sc1a1col1, input$sc1a1bg,input$sc1a1ord1,
-                 input$sc1a1fsz, input$sc1a1asp1, input$sc1a1txt,
-                 input$sc1a1leg, input$sc1a1legpos,input$sc1a1arrange)
+                 input$sc1a1fsz, input$sc1a1asp1, input$sc1a1txt,input$sc1a1title,
+                 input$sc1a1leg, input$sc1a1legpos,input$sc1a1arrange, 
+                 inpxlim = input$sc1a1xlim, inpylim = input$sc1a1ylim,inpmintxt = input$sc1a1mintxt)
     })
     output$sc1a1oup1 <- renderPlot({sc1a1oup1()})
     output$sc1a1oup1.ui <- renderUI({
@@ -199,7 +240,7 @@ shinyServer(function(input, output, session) {
                   rownames = FALSE, extensions = "Buttons",
                   options = list(pageLength = -1, dom = "tB",
                                  columnDefs = list(list(className = 'dt-center', targets = "_all")),
-                                 buttons = c("copy", "csv", "excel"))) %>%
+                                 buttons = c("copy", "print"))) %>%
             formatRound(columns = c("percent"), digits = 2)
     })
     output$sc1a1_selec.dt <- renderDataTable({
@@ -207,7 +248,8 @@ shinyServer(function(input, output, session) {
         datatable(scDRexNum(sub_ggData,input$sc1a1inpg1),
                   rownames = FALSE, extensions = "Buttons",
                   options = list(pageLength = -1, dom = "tB",
-                                 columnDefs = list(list(className = 'dt-center', targets = "_all")))) %>%
+                                 columnDefs = list(list(className = 'dt-center', targets = "_all")),
+                                 buttons = c("copy", "print"))) %>%
             formatRound(columns = c("percent"), digits = 2)
     })
     sc1a1oup2 <- reactive({
@@ -264,8 +306,9 @@ shinyServer(function(input, output, session) {
     sc1a2oup1 <- reactive({
         scDRcell(sc1conf, sc1meta, input$sc1a2drX, input$sc1a2drY, input$sc1a2inp1,"no split",
                  input$sc1a2sub1_1, input$sc1a2sub1_2,input$sc1a2sub2_1, input$sc1a2sub2_2,input$sc1a2sub3_1, input$sc1a2sub3_2,
-                 input$sc1a2siz, input$sc1a2col1, input$sc1a2ord1,
-                 input$sc1a2fsz, input$sc1a2asp, input$sc1a2txt, input$sc1a2lab1,input$sc1a2leg1,input$sc1a2legpos1)
+                 input$sc1a2siz, input$sc1a2col1, input$sc1a2ord1, 
+                 input$sc1a2fsz, input$sc1a2asp, input$sc1a2txt, inptitle = FALSE,
+                 input$sc1a2lab1,input$sc1a2leg1,input$sc1a2legpos1)
     })
     output$sc1a2oup1 <- renderPlot({sc1a2oup1()})
     output$sc1a2oup1.ui <- renderUI({
@@ -301,7 +344,7 @@ shinyServer(function(input, output, session) {
     sc1a2oup2 <- reactive({
         scDRgene(sc1a2Data(), sc1conf, sc1max, input$sc1a2drX, input$sc1a2drY, input$sc1a2inpg2,"no split",
                  input$sc1a2siz, input$sc1a2max,input$sc1a2col2,"lightgrey", input$sc1a2ord2,
-                 input$sc1a2fsz, input$sc1a2asp, input$sc1a2txt,input$sc1a2leg2, input$sc1a2legpos2)
+                 input$sc1a2fsz, input$sc1a2asp, input$sc1a2txt,inptitle = FALSE,input$sc1a2leg2, input$sc1a2legpos2)
     })
     output$sc1a2oup2 <- renderPlot({sc1a2oup2()})
     output$sc1a2oup2.ui <- renderUI({
@@ -361,7 +404,7 @@ shinyServer(function(input, output, session) {
         scDRcell(sc1conf, sc1meta, input$sc1a3drX, input$sc1a3drY, input$sc1a3inp1,"no split",
                  input$sc1a3sub1_1, input$sc1a3sub1_2,input$sc1a3sub2_1, input$sc1a3sub2_2,input$sc1a3sub3_1, input$sc1a3sub3_2,
                  input$sc1a3siz, input$sc1a3col1, input$sc1a3ord1,
-                 input$sc1a3fsz, input$sc1a3asp, input$sc1a3txt, input$sc1a3lab1)
+                 input$sc1a3fsz, input$sc1a3asp, input$sc1a3txt, inptitle = FALSE, input$sc1a3lab1)
     })
 
     output$sc1a3oup1 <- renderPlot({sc1a3oup1()})
@@ -392,7 +435,7 @@ shinyServer(function(input, output, session) {
         scDRcell(sc1conf, sc1meta, input$sc1a3drX, input$sc1a3drY, input$sc1a3inp2,"no split",
                  input$sc1a3sub1_1, input$sc1a3sub1_2,input$sc1a3sub2_1, input$sc1a3sub2_2,input$sc1a3sub2_1, input$sc1a3sub2_2,
                  input$sc1a3siz, input$sc1a3col2, input$sc1a3ord2,
-                 input$sc1a3fsz, input$sc1a3asp, input$sc1a3txt, input$sc1a3lab2)
+                 input$sc1a3fsz, input$sc1a3asp, input$sc1a3txt, inptitle = FALSE, input$sc1a3lab2)
     })
     output$sc1a3oup2 <- renderPlot({sc1a3oup2()})
     output$sc1a3oup2.ui <- renderUI({
@@ -438,7 +481,7 @@ shinyServer(function(input, output, session) {
     sc1a4oup1 <- reactive({
         scDRgene(sc1a4Data1(), sc1conf, sc1max, input$sc1a4drX, input$sc1a4drY, input$sc1a4inpg1,"no split",
                  input$sc1a4siz, input$sc1a4max,input$sc1a4col1,"lightgrey", input$sc1a4ord1,
-                 input$sc1a4fsz, input$sc1a4asp, input$sc1a4txt,input$sc1a4leg, input$sc1a4legpos)
+                 input$sc1a4fsz, input$sc1a4asp, input$sc1a4txt,inptitle = FALSE,input$sc1a4leg, input$sc1a4legpos)
     })
 
     output$sc1a4oup1 <- renderPlot({sc1a4oup1()})
@@ -467,7 +510,7 @@ shinyServer(function(input, output, session) {
     sc1a4oup2 <- reactive({
         scDRgene(sc1a4Data2(), sc1conf, sc1max, input$sc1a4drX, input$sc1a4drY, input$sc1a4inpg2,"no split",
                  input$sc1a4siz, input$sc1a4max,input$sc1a4col2,"lightgrey", input$sc1a4ord2,
-                 input$sc1a4fsz, input$sc1a4asp, input$sc1a4txt,input$sc1a4leg, input$sc1a4legpos)
+                 input$sc1a4fsz, input$sc1a4asp, input$sc1a4txt,inptitle = FALSE,input$sc1a4leg, input$sc1a4legpos)
     })
     output$sc1a4oup2 <- renderPlot({sc1a4oup2()})
     output$sc1a4oup2.ui <- renderUI({
@@ -505,6 +548,10 @@ shinyServer(function(input, output, session) {
         checkboxGroupInput("sc1b1sub3_2", "Select which cells to show", inline = TRUE,
                            choices = sub, selected = NULL)
     })
+    observe({ switch(input$sc1b1asp,
+                     "Fixed" = shinyjs::toggle(id = "sc1b1tog8_open",anim = TRUE, condition = TRUE),
+                     shinyjs::toggle(id = "sc1b1tog8_open",anim = TRUE, condition = FALSE))
+    })
     ggData <- reactive({
         scDRcoex(sc1conf, sc1meta, input$sc1b1drX, input$sc1b1drY,
                  input$sc1b1inpg1, input$sc1b1inpg2,input$sc1b1grp,
@@ -517,7 +564,8 @@ shinyServer(function(input, output, session) {
                                    "Tri-Colors" = scDRcoexPlot3)(ggData(),input$sc1b1drX, input$sc1b1drY,
                                         input$sc1b1inpg1, input$sc1b1inpg2,
                             input$sc1b1siz, input$sc1b1col1, input$sc1b1ord1,
-                              input$sc1b1fsz, input$sc1b1asp, input$sc1b1txt, input$plot_brush)
+                            input$sc1b1fsz, input$sc1b1asp, inpxlim = input$sc1b1xlim, inpylim = input$sc1b1ylim,
+                            input$sc1b1txt, input$sc1b1title, input$plot_brush)
     })
     output$sc1b1oup1 <- renderPlot({sc1b1oup1()})
     output$sc1b1oup1.ui <- renderUI({
@@ -649,7 +697,7 @@ shinyServer(function(input, output, session) {
     })
     sc1c1oupSig <- reactive({
         if(input$sc1c1sig){
-            scVioBoxSig(sc1c1Data(),input$sc1c1inp3,
+            scVioBoxSig(sc1c1Data(),input$sc1c1inp3,input$sc1c1pvalmethod,
                         input$sc1c1plab,input$sc1c1pcut)
         } else NULL
     })
@@ -891,31 +939,42 @@ shinyServer(function(input, output, session) {
         checkboxGroupInput("sc1f1sub3_2", "Select which cells to show", inline = TRUE,
                            choices = sub, selected = NULL)
     })
-    sc1f1ident.choices = reactive({strsplit(sc1conf[UI == input$sc1f1ident]$fID, "\\|")[[1]]})
+    sc1f1grp.choices = reactive({strsplit(sc1conf[UI == input$sc1f1grp]$fID, "\\|")[[1]]})
 
     output$sc1f1ident1.ui <- renderUI({
-        checkboxGroupInput("sc1f1ident1", "Select group 1", inline = TRUE,
-                           choices = sc1f1ident.choices(), selected = NULL)
+        checkboxGroupInput("sc1f1ident1", "Select treated group", inline = TRUE,
+                           choices = sc1f1grp.choices(), selected = NULL)
     })
     output$sc1f1ident2.ui <- renderUI({
-        checkboxGroupInput("sc1f1ident2", "Select group 2", inline = TRUE,
-                           choices = sc1f1ident.choices(), selected = NULL)
+        checkboxGroupInput("sc1f1ident2", "Select reference group", inline = TRUE,
+                           choices = sc1f1grp.choices(), selected = NULL)
     })
-    sc1f1oupData <- eventReactive(input$sc1f1update,{
+    sc1f1adata_uns <- eventReactive(input$sc1f1update,{
         NeedReRun <- !(.checkIfIdentical(inpsub1_2 = input$sc1f1sub1_2,
                                          inpsub2_2 = input$sc1f1sub2_2, inpsub3_2 = input$sc1f1sub3_2,
-                                         inpident_1 = input$sc1f1ident1, inpident_2 = input$sc1f1ident2,
-                                         file.name = "tempData/de_info.csv"))
+                                         inpident_1 = input$sc1f1ident1, inpident_2 = input$sc1f1ident2,inpDEmethod = input$sc1f1DEmethod,
+                                         file.name = "tempData/rank_genes_groups_1.csv"))
         if(NeedReRun){
-            scFindMarkers(sc1conf, sc1meta,
-                          input$sc1f1sub1_1, input$sc1f1sub1_2, input$sc1f1sub2_1, input$sc1f1sub2_2,
-                          input$sc1f1sub3_1, input$sc1f1sub3_2,
-                          input$sc1f1ident, input$sc1f1ident1, input$sc1f1ident2)
+            print("NeedReRun!")
+            scFindMarkers("sc1csr_gexpr.h5ad",
+                           input$sc1f1sub1_1, input$sc1f1sub1_2, input$sc1f1sub2_1, input$sc1f1sub2_2,
+                           input$sc1f1sub3_1, input$sc1f1sub3_2,
+                           input$sc1f1grp, input$sc1f1ident1, input$sc1f1ident2,inpDEmethod = input$sc1f1DEmethod)
+        } else {
+            print("Don't NeedReRun!")
+            sc <- reticulate::import("scanpy")
+            sc$read_h5ad(file.path("tempData","rank_genes_groups_1.h5ad"))
         }
-        return(loadDeData("tempData/scFindMarkers.h5", key = "de", input$sc1f1rmgene))
     })
-    sc1f1oup1 <- reactive({VolcanoPlots(ggData= sc1f1oupData(),
-                                        input$sc1f1inp, sc1gene,
+    sc1f1oupData <- reactive({
+                loadDEGs(sc1f1adata_uns(),input$sc1f1grp, input$sc1f1ident1, input$sc1f1ident2,
+                         input$sc1f1cutp, input$sc1f1cutpval,
+                         input$sc1f1cutfc, input$sc1f1cutpct,
+                         inprmgene =input$sc1f1rmgene)
+    })
+    sc1f1oup1 <- reactive({loadDEGs(sc1f1adata_uns(),input$sc1f1grp, input$sc1f1ident1, input$sc1f1ident2,
+                                    input$sc1f1cutp, inpcutpval = 1,inpcutfc = 0,inpcutpct = 0) %>%
+                           VolcanoPlots(input$sc1f1inp, sc1gene,
                                         input$sc1f1sub1_2,
                                         input$sc1f1sub2_2,
                                         input$sc1f1sub3_2,
@@ -939,8 +998,8 @@ shinyServer(function(input, output, session) {
     output$sc1f1oup1.ui <- renderUI({
         withSpinner(plotOutput("sc1f1oup1", height = pList[input$sc1f1psz]))
     })
-    de_info <- reactive({
-        read.delim("tempData/de_info.csv", header = FALSE) %>% .$V1
+    de_info <- eventReactive(input$sc1f1update,{
+        read.delim("tempData/rank_genes_groups_1.csv", header = FALSE) %>% .$V1
     })
     output$sc1f1oup1.png <- downloadHandler(
         filename = function() { paste0(Sys.Date(),"-",de_info(),".png") },
@@ -958,7 +1017,7 @@ shinyServer(function(input, output, session) {
                                                 options = list(#pageLength = -1, dom = "tB",
                                                                columnDefs = list(list(className = 'dt-center',
                                                                                       targets = "_all")))) %>%
-                                       formatRound(c(2:4,6:7), 3) %>%
+                                       formatRound(c(2:6), 3) %>%
                                            formatSignif(columns = c('p_val','p_val_adj'), digits = 3)
     )
     output$sc1f1oup1.csv <- downloadHandler(
@@ -1001,7 +1060,7 @@ shinyServer(function(input, output, session) {
                              input$sc1f2sub3_1, input$sc1f2sub3_2,input$sc1f2grp, input$sc1f2inpgrp)
         } else {
             print("Don't NeedReRun!")
-            LoadAnndata("sc1csr_gexpr.h5ad",
+            LoadAnndata("rank_genes_groups.h5ad",
                          input$sc1f2sub1_1, input$sc1f2sub1_2, input$sc1f2sub2_1, input$sc1f2sub2_2,
                          input$sc1f2sub3_1, input$sc1f2sub3_2,input$sc1f2grp, input$sc1f2inpgrp)
         }
@@ -1072,7 +1131,7 @@ shinyServer(function(input, output, session) {
                                            formatRound(c(3:8), 3) %>%
                                            formatSignif(columns = c('p_val','p_val_adj'), digits = 3)
     )
-    DEGs_info <- reactive({
+    DEGs_info <- eventReactive(input$sc1f2update,{
         read.delim("tempData/rank_genes_groups.csv", header = FALSE) %>% .$V1
     })
     output$sc1f2oup1.csv <- downloadHandler(
@@ -1110,7 +1169,7 @@ shinyServer(function(input, output, session) {
     sc1g1adata <- eventReactive(input$sc1g1update,{
         NeedReRunDE <- !(.checkIfIdentical(inpsub1_2 = input$sc1g1sub1_2, inpsub2_2 = input$sc1g1sub2_2, inpsub3_2 = input$sc1g1sub3_2,
                                          inpGrp = input$sc1g1grp,
-                                         file.name = "tempData/rank_genes_groups.csv")) & input$sc1g1plt != "Correlation Matrix"
+                                         file.name = "tempData/rank_genes_groups.csv"))
         if(NeedReRunDE){
             print("Need Re Run DE!")
             scFindAllMarkers("sc1csr_gexpr.h5ad",
@@ -1170,19 +1229,39 @@ shinyServer(function(input, output, session) {
     })
 
     sc1g1fgsea_res <- reactive({
-        fgseaDendrogram(sc1g1GSEA(),inpgscutpadj = input$sc1g1gscutpadj,inpgscutpval = input$sc1g1gscutpval,
-                        Rowv = input$sc1g1rowv,Colv = input$sc1g1colv,order_row = input$sc1g1orderRow,inpX = input$sc1g1inpgrp)
+        if(input$sc1g1plt == "Dotplot"){
+            fgseaDendrogram(sc1g1GSEA(),inpgscutpadj = input$sc1g1gscutpadj,inpgscutpval = input$sc1g1gscutpval,
+                            Rowv = input$sc1g1rowv,Colv = input$sc1g1colv,order_row = input$sc1g1orderRow,inpX = input$sc1g1inpgrp)
+        } else if(input$sc1g1plt == "BarPlot"){
+            fgseaSort(sc1g1GSEA(),inpgscutpadj = input$sc1g1gscutpadj,inpgscutpval = input$sc1g1gscutpval,
+                      order_row = input$sc1g1orderRow,inpX = input$sc1g1inpgrp)
+        }
+        
     })
     sc1g1oup1 <- reactive({
-        FgseaDotPlot(sc1g1fgsea_res(), inpvalToPlot = paste0(" -log10(",input$sc1g1valToPlot,")"),
-                     scale.by =c('size','radius')[1],
-                     fill = "NES",
-                     cols = if(input$sc1g1colinv) {
-                         rev(color_generator(input$sc1g1cols,n = 50))
-                         } else color_generator(input$sc1g1cols,n = 50),
-                     inpfsz = input$sc1g1fsz,
-                     inpflpxy = input$sc1g1flpxy,
-                     verbose=T,inpfrt=input$sc1g1frt)
+        if(input$sc1g1plt == "Dotplot"){
+            FgseaDotPlot(sc1g1fgsea_res(), inpvalToPlot = paste0(" -log10(",input$sc1g1valToPlot,")"),
+                         scale.by =c('size','radius')[1],
+                         fill = "NES",
+                         cols = if(input$sc1g1colinv) {
+                             rev(color_generator(input$sc1g1cols,n = 50))
+                             } else color_generator(input$sc1g1cols,n = 50),
+                         inpfullrange = TRUE,
+                         inpcircle = input$sc1g1circle,
+                         inppsz = input$sc1g1psiz,
+                         inpfsz = input$sc1g1fsz,
+                         inpflpxy = input$sc1g1flpxy,
+                         verbose=T,inpfrt=input$sc1g1frt)
+        } else if(input$sc1g1plt == "BarPlot"){
+            FgseaBarplot(sc1g1fgsea_res(), 
+                         fill = "NES",
+                         inpcols = if(input$sc1g1colinv) {
+                             color_generator(input$sc1g1cols,n = 2)
+                         } else rev(color_generator(input$sc1g1cols,n = 2)),
+                         inpfsz = input$sc1g1fsz,
+                         inpflpxy = !(input$sc1g1flpxy), inpfrt = input$sc1g1frt,
+                         verbose=T)
+        }
     })
     output$sc1g1oup1 <- renderPlot({sc1g1oup1()})
     output$keepAlive <- renderText({
@@ -1192,7 +1271,7 @@ shinyServer(function(input, output, session) {
     output$sc1g1oup1.ui <- renderUI({
         withSpinner(plotOutput("sc1g1oup1", height = pList[input$sc1g1psz]))
     })
-    fgsea_info <- reactive({
+    fgsea_info <- eventReactive(input$sc1g1update,{
         read.delim("tempData/fgsea_Res.csv", header = FALSE) %>% .$V1
     })
     output$sc1g1oup1.png <- downloadHandler(

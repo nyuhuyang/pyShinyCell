@@ -16,7 +16,7 @@ list(tags$style(HTML(".navbar-default .navbar-nav { font-weight: bold; font-size
 theme=bs_theme(bootswatch = "default"),
 
 ### Page title
-titlePanel("120 PBMC from patients with PALIBR+ibrutinib Phase I & II trial and AIM trial"),
+titlePanel("Mouse BladderCancer scRNA-seq"),
 navbarPage(
     NULL,
     #theme=bs_theme(bootswatch = "default"),
@@ -77,14 +77,14 @@ navbarPage(
                                                      choices = c("Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Large", inline = TRUE),
                             radioButtons("sc1a0fsz", "Font size:",
-                                                     choices = c("Extra Small","Small", "Medium", "Large"),
+                                                     choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Medium", inline = TRUE),
                             radioButtons("sc1a0asp", "Aspect ratio:",
                                                      choices = c("Square", "Fixed", "Free"),
                                                      selected = "Square", inline = TRUE),
-                            checkboxInput("sc1a0txt", "Show Fixed axis text", value = TRUE),
+                            checkboxInput("sc1a0txt", "Show axis text", value = TRUE),
+                            checkboxInput("sc1a0title", "Show axis title", value = TRUE),
                             shinyjs::useShinyjs(),
-                            a(id = "sc1a0tog5", "Show/hide axis options"),
                             shinyjs::hidden(
                                 div(id = "sc1a0tog5_open",
                                     sliderInput("sc1a0xlim", "x-axis range:",
@@ -111,13 +111,19 @@ navbarPage(
                                                      choices = c("Max-1st", "Min-1st", "Original", "Random"),
                                                      selected = "Original"),
                             selectInput("sc1a0lab1", "Labels:",
-                                         choices = c("No labels","black text","black labels","color text","color labels"),
+                                         choices = c("No labels","black text","black labels","color labels"),
                                                      selected = "color labels"),
-
+                            shinyjs::useShinyjs(),
+                            shinyjs::hidden(
+                                    div(id = "sc1a0tog6_open",
+                                        numericInput("sc1a0overlaps", "max labels to show",
+                                                     min = 5,max = 30, value = 25,step = 1)
+                                    )
+                            ),
                             checkboxInput("sc1a0leg", "Show Legend", value = FALSE),
                             radioButtons("sc1a0legpos", "Legend positions:",
                                          choices = c("top", "right", "bottom"),
-                                         selected = "bottom", inline = TRUE)
+                                         selected = "right", inline = TRUE)
                         )
                     )
                 )
@@ -150,9 +156,9 @@ navbarPage(
                     column(
                         4,
                         shinyjs::useShinyjs(),
-                        a(id = "sc1a0tog6", "Show/hide split options"),
+                        a(id = "sc1a0tog7", "Show/hide split options"),
                         shinyjs::hidden(
-                            div(id = "sc1a0tog6_open",
+                            div(id = "sc1a0tog7_open",
                                 radioButtons("sc1a0arrange", NULL,
                                              choices = c("auto","1row","1column"),
                                              selected = "auto", inline = TRUE)
@@ -175,7 +181,9 @@ navbarPage(
                 conditionalPanel(
                     condition = "input.sc1a0tog9 % 2 == 1",
                     h4("Cell numbers"),
-                    dataTableOutput("sc1a0.dt")
+                    dataTableOutput("sc1a0.dt"),
+                    downloadButton("sc1a0oup.csv", "Download csv"),
+                    downloadButton("sc1a0oup.xlsx", "Download xlsx")
                 )
             ) # End of column (12 space)
         )        # End of fluidRow (4 space)
@@ -243,12 +251,24 @@ navbarPage(
                                          choices = c("Small", "Medium", "Large", "Extra Large"),
                                          selected = "Large", inline = TRUE),
                             radioButtons("sc1a1fsz", "Font size:",
-                                         choices = c("Extra Small","Small", "Medium", "Large"),
+                                         choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                          selected = "Medium", inline = TRUE),
                             radioButtons("sc1a1asp1", "Aspect ratio:",
-                                         choices = c("Square", "Fixed", "Free"),
-                                         selected = "Fixed", inline = TRUE),
-                            checkboxInput("sc1a1txt", "Show axis text", value = FALSE)
+                                         choices = c("Square", "Fixed"),
+                                         selected = "Square", inline = TRUE),
+                            checkboxInput("sc1a1txt", "Show axis text", value = TRUE),
+                            checkboxInput("sc1a1title", "Show axis title", value = TRUE),
+                            shinyjs::useShinyjs(),
+                            shinyjs::hidden(
+                                div(id = "sc1a1tog6_open",
+                                    sliderInput("sc1a1xlim", "x-axis range:",
+                                                min = -20, max = 20, value = c(-20,20), step = 0.25),
+                                    sliderInput("sc1a1ylim", "y-axis range:",
+                                                min = -20, max = 20, value = c(-20,20), step = 0.25),
+                                    checkboxInput("sc1a1mintxt", "Show minor axis text", value = FALSE)
+                                    
+                                )
+                            )
                         ),
                         column(
                             6,
@@ -427,10 +447,10 @@ navbarPage(
                             6, sliderInput("sc1a2siz", "Point size:",
                                                          min = 0, max = 4, value = 1.25, step = 0.25),
                             radioButtons("sc1a2psz", "Plot size:",
-                                                     choices = c("Small", "Medium", "Large"),
+                                                     choices = c("Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Medium", inline = TRUE),
                             radioButtons("sc1a2fsz", "Font size:",
-                                                     choices = c("Small", "Medium", "Large"),
+                                                     choices = c("Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Medium", inline = TRUE)
                         ),
                         column(
@@ -603,10 +623,10 @@ navbarPage(
                             6, sliderInput("sc1a3siz", "Point size:",
                                                          min = 0, max = 4, value = 1.25, step = 0.25),
                             radioButtons("sc1a3psz", "Plot size:",
-                                                     choices = c("Small", "Medium", "Large"),
+                                                     choices = c("Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Medium", inline = TRUE),
                             radioButtons("sc1a3fsz", "Font size:",
-                                                     choices = c("Small", "Medium", "Large"),
+                                                     choices = c("Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Medium", inline = TRUE)
                         ),
                         column(
@@ -768,10 +788,10 @@ navbarPage(
                                        content = c("Select maximal expression level in the entire dataset.
                                                    This is useful for cross-group comparison")),
                             radioButtons("sc1a4psz", "Plot size:",
-                                                     choices = c("Small", "Medium", "Large"),
+                                                     choices = c("Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Medium", inline = TRUE),
                             radioButtons("sc1a4fsz", "Font size:",
-                                                     choices = c("Small", "Medium", "Large"),
+                                                     choices = c("Small", "Medium", "Large", "Extra Large"),
                                                      selected = "Medium", inline = TRUE)
                         ),
                         column(
@@ -945,8 +965,22 @@ navbarPage(
                                                     choices = c("Small", "Medium", "Large", "Extra Large"),
                                                     selected = "Medium", inline = TRUE),
                          radioButtons("sc1b1fsz", "Font size:",
-                                                    choices = c("Extra Small","Small", "Medium", "Large"),
-                                                    selected = "Medium", inline = TRUE)
+                                                    choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
+                                                    selected = "Medium", inline = TRUE),
+                         radioButtons("sc1b1asp", "Aspect ratio:",
+                                      choices = c("Square", "Fixed", "Free"),
+                                      selected = "Square", inline = TRUE),
+                         checkboxInput("sc1b1txt", "Show axis text", value = TRUE),
+                         checkboxInput("sc1b1title", "Show axis title", value = TRUE),
+                         shinyjs::useShinyjs(),
+                         shinyjs::hidden(
+                             div(id = "sc1b1tog8_open",
+                                 sliderInput("sc1b1xlim", "x-axis range:",
+                                             min = -20, max = 20, value = c(-20,20), step = 0.25),
+                                 sliderInput("sc1b1ylim", "y-axis range:",
+                                             min = -20, max = 20, value = c(-20,20), step = 0.25)
+                             )
+                         )
                      ),
                      column(
                          6,
@@ -965,11 +999,7 @@ navbarPage(
                                       selected = "lightgrey", inline = TRUE),
                          radioButtons("sc1b1ord1", "Plot order:",
                                       choices = c("Max-1st", "Min-1st", "Original", "Random"),
-                                      selected = "Max-1st", inline = TRUE),
-                         radioButtons("sc1b1asp", "Aspect ratio:",
-                                      choices = c("Square", "Fixed", "Free"),
-                                      selected = "Square", inline = TRUE),
-                         checkboxInput("sc1b1txt", "Show axis text", value = FALSE)
+                                      selected = "Max-1st", inline = TRUE)
                      )
                  )
              )
@@ -1136,7 +1166,7 @@ navbarPage(
                                             choices = c("Small", "Medium", "Large","Extra Large"),
                                             selected = "Medium", inline = TRUE),
                  radioButtons("sc1c1fsz", "Font size:",
-                                            choices = c("Extra Small","Small", "Medium", "Large"),
+                                            choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                             selected = "Medium", inline = TRUE),
                  radioButtons("sc1c1frt", "Rotate x axis label:",
                                             choices = c(0,30,45,90),
@@ -1150,6 +1180,9 @@ navbarPage(
              actionButton("sc1c1tog5", "Toggle p value controls"),
              conditionalPanel(
                  condition = "input.sc1c1tog5 % 2 == 1",
+                 selectInput("sc1c1pvalmethod","Select method to adjust p values",
+                             choices= c("fdr","BH", "BY", "holm", "hochberg", "hommel", "bonferroni"),
+                             selected="fdr"),
                  sliderInput("sc1c1pcut", "log10 p value cut off",
                              min = 0, max = 300, value = 2, step = 1),
                  sliderInput("sc1c1pvalpos", "Change p value position",
@@ -1271,10 +1304,10 @@ tabPanel(
                 checkboxInput("sc1c2addline", "Add line", value = TRUE),
                 checkboxInput("sc1c2err", "Show error bar", value = TRUE),
                 radioButtons("sc1c2fsz", "Font size:",
-                                         choices = c("Extra Small","Small", "Medium", "Large"),
+                                         choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                          selected = "Medium", inline = TRUE),
                 radioButtons("sc1c2lsz", "line size:",
-                                         choices = c("Extra Small","Small", "Medium", "Large"),
+                                         choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                          selected = "Medium", inline = TRUE),
                 selectInput("sc1c2lab", "Labels:",
                              choices = c("No %","No labels", "black text","color labels"),
@@ -1511,10 +1544,10 @@ tabPanel(
                 sliderInput("sc1e1lvls", "conf.int.level:",
                                         min = 0, max = 1, value = 0.3, step = 0.05),
                 radioButtons("sc1e1fsz", "Font size:",
-                                         choices = c("Extra Small","Small", "Medium", "Large"),
+                                         choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                          selected = "Medium", inline = TRUE),
                 radioButtons("sc1e1lsz", "line size:",
-                                         choices = c("Extra Small","Small", "Medium", "Large"),
+                                         choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                          selected = "Medium", inline = TRUE),
                 radioButtons("sc1e1frt", "Rotate x axis label:",
                                          choices = c(0,30,45,90),
@@ -1537,25 +1570,25 @@ tabPanel(
 ### Tab.f1: Differential analysis 1
 tabPanel(
     HTML("Differential Analysis 1"),
-    h4("Run differential expression analysis in two groups"),
+    h4("Run pairwise differential expression analysis"),
     "In this tab, you can identify all marker genes from two groups by pairwise differential analysis, then visualize them in a volcano plot",
     br(),br(),
     fluidRow(
         column(
             3, style="border-right: 2px solid black",
-            selectInput("sc1f1ident", h4("Select groups"),
+            selectInput("sc1f1grp", h4("Select groups"),
                         choices = sc1conf[grp == TRUE]$UI,
                         selected = sc1def$grp1),
             uiOutput("sc1f1ident1.ui") %>%
                 helper(type = "inline", size = "m", fade = TRUE,
                        icon = "circle-question",
                        title = "Select treated group",
-                       content = c("Select treated group, equivalent to 'ident.1' in Seurat FindMarkers")),
+                       content = c("Select treated group, equivalent to 'ident.1' in Seurat::FindMarkers, 'groups' in scanpy.tl.rank_genes_groups.")),
             uiOutput("sc1f1ident2.ui") %>%
                 helper(type = "inline", size = "m", fade = TRUE,
                        icon = "circle-question",
-                       title = "Select control group",
-                       content = c("Select control group, equivalent to 'ident.2' in Seurat FindMarkers.
+                       title = "Select reference group",
+                       content = c("Select control group, equivalent to 'ident.2' in Seura::FindMarkers, 'reference' in scanpy.tl.rank_genes_groups.
                                            If NULL, use all other cells for comparison")),
             actionButton(inputId = "sc1f1update", "Run differential analysis",icon("sync",verify_fa = FALSE)),
             actionButton("sc1f1tog1", "Toggle to subset cells"),
@@ -1587,8 +1620,11 @@ tabPanel(
             actionButton("sc1f1tog4", "Toggle DE setting"),
             conditionalPanel(
                 condition = "input.sc1f1tog4 % 2 == 1",
+                selectInput("sc1f1DEmethod", "Select a DE method",
+                            choices=c("wilcoxon","logreg",  "t-test_overestim_var","t-test"),
+                            selected= "wilcoxon"),
                 numericInput("sc1f1top", "Select top N DEGs:", min = 0, max = 20, value = 10, step = 0.5),
-                radioButtons("sc1f1cutp", "filter genes with:",
+                radioButtons("sc1f1cutp", "y-axis by:",
                              choices = c("p_val_adj","p_val"),
                              selected = "p_val_adj", inline = TRUE),
                 numericInput("sc1f1cutpval", NULL, min = 0, max = 1, value = 0.05),
@@ -1625,7 +1661,7 @@ tabPanel(
                              selected = "Large", inline = TRUE),
                 radioButtons("sc1f1fsz", "Font size:",
                              choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
-                             selected = "Medium", inline = TRUE),
+                             selected = "Extra Large", inline = TRUE),
                 radioButtons("sc1f1asp", "Aspect ratio:",
                              choices = c("Square", "Fixed", "Free"),
                              selected = "Square", inline = TRUE),
@@ -1667,10 +1703,10 @@ tabPanel(
                downloadButton("sc1f1oup1.jpeg", "Download jpeg"), br(),
                div(style="display:inline-block",
                    numericInput("sc1f1oup1.h", "png / jpeg height:", width = "138px",
-                                min = 4, max = 50, value = 13, step = 0.5)),
+                                min = 4, max = 50, value = 10, step = 0.5)),
                div(style="display:inline-block",
                    numericInput("sc1f1oup1.w", "png / jpeg width:", width = "138px",
-                                min = 4, max = 50, value = 13, step = 0.5)), br(),
+                                min = 4, max = 50, value = 10, step = 0.5)), br(),
                actionButton("sc1f1tog9", "Toggle to show DE results"),
                conditionalPanel(
                    condition = "input.sc1f1tog9 % 2 == 1",
@@ -1769,7 +1805,7 @@ tabPanel(
                              choices = c("Small", "Medium", "Large", "Extra Large"),
                              selected = "Medium", inline = TRUE),
                 radioButtons("sc1f2fsz", "Font size:",
-                             choices = c("Extra Small","Small", "Medium", "Large"),
+                             choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                              selected = "Small", inline = TRUE),
                 checkboxInput("sc1f2flpxy", "Flip x and y axis", value = FALSE),
                 radioButtons("sc1f2frt", "Rotate x group label:",
@@ -1813,7 +1849,7 @@ tabPanel(
                        content = c("Select categorical cell information to group cells by",
                                    "- Single cells are grouped by this categorical covariate",
                                    "- Plotted as the X-axis of the bubbleplot / heatmap")),
-            selectizeInput("sc1g1inpgrp", choices=NULL,multiple=TRUE,label = "Specify group order (optional)"),
+            selectizeInput("sc1g1inpgrp", choices=NULL,multiple=TRUE,label = "Specify group order (Dotplot); Choose one group (Barplot)"),
             selectizeInput("sc1g1dbs", "Databases:",
                            choices = libraryName,
                            selected = "MSigDB_Hallmark_2020", multiple=TRUE),
@@ -1824,7 +1860,7 @@ tabPanel(
                                  "text/comma-separated-values,text/plain",
                                  ".csv")),
             selectizeInput("sc1g1plt", "Plot type:",
-                           choices = c("Rank_genes","Dotplot","MatrixPlot","Stacked Violin", "Heatmap","TracksPlot","Correlation Matrix"),
+                           choices = c("Dotplot","BarPlot"),
                            selected = "Dotplot", multiple=FALSE),
             actionButton(inputId = "sc1g1update", "Run Gene Set Enrichment Analysis",icon("sync",verify_fa = FALSE)),
             #checkboxInput("sc1g1zscore", "Scale gene expression", value = TRUE),
@@ -1879,21 +1915,25 @@ tabPanel(
                 condition = "input.sc1g1tog6 % 2 == 1",
                 selectInput("sc1g1cols", "Select a color specturm:",
                             choices=c(rownames(pal.info)[pal.info$category %in% "div"]),
-                            selected="GSEA"),
+                            selected="Blue-White-Red"),
                 checkboxInput("sc1g1colinv", "Reverse color", value = FALSE),
+                #checkboxInput("sc1g1fullrange", "full range color", value = FALSE),
                 radioButtons("sc1g1valToPlot", "dot size by:",
                              choices = c("pval", "padj"),
                              selected = "padj", inline = TRUE),
+                checkboxInput("sc1g1circle", "Dot circle", value = TRUE),
+                sliderInput("sc1g1psiz", "Dot size:",
+                            min = 4, max = 8, value = 3, step = 0.5),
                 radioButtons("sc1g1psz", "Plot size:",
                              choices = c("Small", "Medium", "Large", "Extra Large"),
                              selected = "Medium", inline = TRUE),
                 radioButtons("sc1g1fsz", "Font size:",
-                             choices = c("Extra Small","Small", "Medium", "Large"),
+                             choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                              selected = "Small", inline = TRUE),
                 checkboxInput("sc1g1flpxy", "Flip x and y axis", value = FALSE),
                 radioButtons("sc1g1frt", "Rotate x-axis label:",
                              choices = c(0,30,45,90),
-                             selected = 90, inline = TRUE)
+                             selected = 0, inline = TRUE)
             )
 
         ),
@@ -2006,7 +2046,7 @@ tabPanel(
                                      choices = c("Small", "Medium", "Large", "Extra Large"),
                                      selected = "Large", inline = TRUE),
                         radioButtons("sc1n1fsz1", "Font size:",
-                                     choices = c("Extra Small","Small", "Medium", "Large"),
+                                     choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                      selected = "Medium", inline = TRUE),
                         radioButtons("sc1n1asp1", "Aspect ratio:",
                                      choices = c("Square", "Fixed", "Free"),
@@ -2066,7 +2106,7 @@ tabPanel(
                                      choices = c("Small", "Medium", "Large", "Extra Large"),
                                      selected = "Large", inline = TRUE),
                         radioButtons("sc1n1fsz2", "Font size:",
-                                     choices = c("Extra Small","Small", "Medium", "Large"),
+                                     choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                                      selected = "Medium", inline = TRUE),
                         checkboxInput("sc1n1name", "Show gene name", value = TRUE),
                         checkboxInput("sc1n1leg", "Show Legend", value = FALSE)
@@ -2193,10 +2233,10 @@ tabPanel(
                              selected = "Medium", inline = TRUE),
                 checkboxInput("sc1t1pts", "Show data points", value = TRUE),
                 radioButtons("sc1t1fsz", "Font size:",
-                             choices = c("Extra Small","Small", "Medium", "Large"),
+                             choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                              selected = "Medium", inline = TRUE),
                 radioButtons("sc1t1lsz", "Line size:",
-                             choices = c("Extra Small","Small", "Medium", "Large"),
+                             choices = c("Extra Small","Small", "Medium", "Large", "Extra Large"),
                              selected = "Medium", inline = TRUE),
                 checkboxInput("sc1t1flp", "Flip X/Y", value = FALSE),
                 radioButtons("sc1t1frt", "Rotate x axis label:",
