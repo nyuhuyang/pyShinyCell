@@ -1,5 +1,5 @@
-# ShinyCell package
-`ShinyCell` is a R package that allows users to create interactive Shiny-based 
+# pyShinyCell package
+`pyShinyCell` is a R + python package that allows users to create interactive Shiny-based 
 web applications to visualise single-cell data via (i) visualising cell 
 information and/or gene expression on reduced dimensions e.g. UMAP, (ii) 
 visualising the coexpression of two genes on reduced dimensions, (iii) 
@@ -11,13 +11,13 @@ Examples of ShinyCell-generated shiny apps for single and multi datasets can
 be found at http://shinycell1.ddnetbio.com and http://shinycell2.ddnetbio.com 
 respectively.
 
-If you are using `ShinyCell`, please cite [Ouyang et al. ShinyCell: Simple and 
+If you are using `pyShinyCell`, please cite [Ouyang et al. ShinyCell: Simple and 
 sharable visualisation of single-cell gene expression data. Bioinformatics, 
 doi:10.1093/bioinformatics/btab209](
 http://dx.doi.org/10.1093/bioinformatics/btab209). The manuscript 
 is recently accepted and we will update the full citation when it is available.
 
-Key features of `ShinyCell` include: 
+Key features of `pyShinyCell` include: 
 
 1. Written in R and uses the Shiny package, allowing for easy sharing on online 
    platforms e.g. [shinyapps.io](https://www.shinyapps.io/) and Amazon Web 
@@ -41,12 +41,12 @@ Key features of `ShinyCell` include:
 6. Ability to include multiple single-cell datasets into a single Shiny web app
 
 7. It is easy to use and customise aethetsics e.g. label names and colour 
-   palettes. In the simplest form, ShinyCell can convert an input single-cell 
+   palettes. In the simplest form, pyShinyCell can convert an input single-cell 
    data into a Shiny app with five lines of code 
    (see [Quick Start Guide](#quick-start-guide))
 
-We also compared ShinyCell with nine other popular scRNA-seq visualisation 
-tools, which further highlights the key features of `ShinyCell`. For a more 
+We also compared pyShinyCell with nine other popular scRNA-seq visualisation 
+tools, which further highlights the key features of `pyShinyCell`. For a more 
 detailed description, see the 
 [Supplementary Information](docs/OuyangEtAl_Shinycell_SuppInfo.pdf).
 
@@ -57,7 +57,7 @@ detailed description, see the
 # Table of Contents and Additional Tutorials
 This readme is broken down into the following sections:
 
-- [Installation](#installation) on how to install `ShinyCell`
+- [Installation](#installation) on how to install `pyShinyCell`
 
 - [Quick Start Guide](#quick-start-guide) to rapidly deploy a shiny app with 
   a few lines of code
@@ -108,7 +108,7 @@ if(length(newPkg)){install.packages(newPkg)}
 
 `ShinyCell` can then be installed from GitHub as follows:
 ``` r
-devtools::install_github("SGDDNB/ShinyCell")
+devtools::install_github("nyuhuyang/ShinyCell")
 ```
 
 
