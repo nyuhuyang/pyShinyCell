@@ -20,7 +20,15 @@ Reorder the order in which metadata appear in the dropdown menu in the
 shiny app.
 }
 \examples{
-scConf = reorderMeta(scConf, scConf$ID[c(1,3,2,4:length(scConf$ID))])
+# Create minimal example config
+scConf <- data.table::data.table(
+  ID = c("cell_type", "batch", "condition"),
+  UI = c("Cell Type", "Batch", "Condition"),
+  fID = c("TypeA|TypeB", "B1|B2", NA),
+  default = c(1, 0, 0)
+)
+# Reorder: batch first, then cell_type, then condition
+scConf <- reorderMeta(scConf, c("batch", "cell_type", "condition"))
 
 }
 \author{

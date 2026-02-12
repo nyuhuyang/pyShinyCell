@@ -49,3 +49,7 @@ vignettes/*.pdf
 # Local config / environment
 .config/
 .local/
+/doc/
+/Meta/
+/shinyApp_develop
+/shinyApp_stable

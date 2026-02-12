@@ -81,12 +81,7 @@ use of multiple single-cell datasets in one Shiny app. Note that both
 running the wrapper function \code{makeShinyApp}.
 }
 \examples{
-makeShinyFiles(seu, scConf, gex.assay = "RNA", gex.slot = "data",
-               shiny.prefix = "sc1", shiny.dir = "shinyApp/",
-               default.gene1 = "GATA3", default.gene2 = "DNMT3L",
-               default.multigene = c("ANPEP","NANOG","ZIC2","NLGN4X","DNMT3L",
-                                     "DPPA5","SLC7A2","GATA3","KRT19"),
-               default.dimred = c("UMAP_1", "UMAP_2"))
+# This is typically called internally or requires setup.
 
 }
 \author{

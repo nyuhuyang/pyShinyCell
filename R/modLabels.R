@@ -15,8 +15,17 @@
 #' @import data.table
 #'
 #' @examples
-#' scConf = modLabels(scConf, meta.to.mod = "library", 
-#'                    new.labels = c("Fib", "Primed", "Naive", "RSeT"))
+#' # Create minimal example config with categorical metadata
+#' scConf <- data.table::data.table(
+#'   ID = c("library"),
+#'   UI = c("Library"),
+#'   fID = c("S1|S2|S3|S4"),
+#'   fUI = c("Sample1|Sample2|Sample3|Sample4"),
+#'   default = c(0)
+#' )
+#' # Modify legend labels
+#' scConf <- modLabels(scConf, meta.to.mod = "library",
+#'                     new.labels = c("Fib", "Primed", "Naive", "RSeT"))
 #'
 #' @export
 modLabels <- function(scConf, meta.to.mod, new.labels){

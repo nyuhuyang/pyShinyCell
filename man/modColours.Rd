@@ -22,8 +22,18 @@ updated shinycell config data.table
 Modify the colour palette for categorical metadata.
 }
 \examples{
-scConf = modColours(scConf, meta.to.mod = "library", 
-                    new.colours = c("black", "darkorange", "blue", "red"))
+# Create minimal example config with categorical metadata
+scConf <- data.table::data.table(
+  ID = c("library"),
+  UI = c("Library"),
+  fID = c("S1|S2|S3|S4"),
+  fUI = c("S1|S2|S3|S4"),
+  fCL = c("red|blue|green|orange"),
+  default = c(0)
+)
+# Modify color palette
+scConf <- modColours(scConf, meta.to.mod = "Library",
+                     new.colours = c("black", "darkorange", "blue", "red"))
 
 }
 \author{

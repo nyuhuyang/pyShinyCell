@@ -17,13 +17,17 @@
 #' @import data.table ggplot2 RColorBrewer grid gridExtra
 #'
 #' @examples
-#' showLegend(scConf)
-#' 
-#' # Can also save the legend for plotting later
-#' scLegend = showLegend(scConf)
-#' leg = do.call(gtable_rbind, scLegend)
-#' grid.newpage()
-#' grid.draw(leg)
+#' # Create minimal example config
+#' scConf <- data.table::data.table(
+#'   ID = c("orig.ident", "seurat_clusters"),
+#'   UI = c("Library", "Cluster"),
+#'   fID = c("S1|S2", "C1|C2|C3"),
+#'   fUI = c("S1|S2", "C1|C2|C3"),
+#'   fCL = c("black|red", "blue|green|orange"),
+#'   default = c(1, 0)
+#' )
+#' # Show legends for the configuration
+#' scLegend <- showLegend(scConf)
 #'
 #' @export
 showLegend <- function(scConf, fontSize = 14){

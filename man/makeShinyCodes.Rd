@@ -37,18 +37,12 @@ please use \code{makeShinyCodesMulti()} instead. Note that both
 running the wrapper function \code{makeShinyApp}.
 }
 \examples{
-# Example citation
-citation = list(
-  author  = "Liu X., Ouyang J.F., Rossello F.J. et al.",
-  title   = "",
-  journal = "Nature",
-  volume  = "586",
-  page    = "101-107",
-  year    = "2020", 
-  doi     = "10.1038/s41586-020-2734-6",
-  link    = "https://www.nature.com/articles/s41586-020-2734-6")
-makeShinyCodes(shiny.title = "scRNA-seq shiny app", shiny.footnotes = "",
-               shiny.prefix = "sc1", shiny.dir = "shinyApp/")
+# This is an internal function typically called via makePyShinyApp().
+# Example showing function signature:
+# makeShinyCodes(shiny.title = "scRNA-seq shiny app",
+#                shiny.footnotes = "",
+#                shiny.prefix = "sc1",
+#                shiny.dir = "shinyApp/")
 
 }
 \author{

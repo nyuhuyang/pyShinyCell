@@ -35,7 +35,25 @@ updated shinycell config data.table
 Add a metadata to be included in the shiny app.
 }
 \examples{
-scConf = addMeta(scConf, c("orig.ident"), seu)
+# Create minimal example Seurat object
+if (requireNamespace("Seurat", quietly = TRUE)) {
+  counts <- matrix(rnbinom(100, size = 1, prob = 0.1), ncol = 20)
+  rownames(counts) <- paste0("Gene", 1:nrow(counts))
+  colnames(counts) <- paste0("Cell", 1:ncol(counts))
+  seu <- Seurat::CreateSeuratObject(counts = counts)
+  seu$orig.ident <- factor(rep(c("sample1", "sample2"), each = 10))
+
+  # Create minimal config
+  scConf <- data.table::data.table(
+    ID = c("cell_type"),
+    UI = c("Cell Type"),
+    fID = c("TypeA|TypeB"),
+    default = c(1)
+  )
+
+  # Add metadata
+  scConf <- addMeta(scConf, c("orig.ident"), seu)
+}
 
 }
 \author{

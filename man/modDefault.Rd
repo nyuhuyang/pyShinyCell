@@ -24,7 +24,16 @@ plotting metadata with gene expression or when plotting two metadata
 simultaneously. Default2 is used when plotting two metadata simultaneously.
 }
 \examples{
-scConf = modDefault(scConf, default1 = "library", default2 = "cluster")
+# Create minimal example config with multiple metadata
+scConf <- data.table::data.table(
+  ID = c("orig.ident", "seurat_clusters"),
+  UI = c("Library", "Cluster"),
+  fID = c("S1|S2", "C1|C2|C3"),
+  fUI = c("S1|S2", "C1|C2|C3"),
+  default = c(0, 0)
+)
+# Set default metadata to display
+scConf <- modDefault(scConf, default1 = "Library", default2 = "Cluster")
 
 }
 \author{

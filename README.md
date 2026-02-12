@@ -1,230 +1,296 @@
-# ShinyCell package
-`ShinyCell` is a R package that allows users to create interactive Shiny-based 
-web applications to visualise single-cell data via (i) visualising cell 
-information and/or gene expression on reduced dimensions e.g. UMAP, (ii) 
-visualising the coexpression of two genes on reduced dimensions, (iii) 
-visualising the distribution of continuous cell information e.g. nUMI / module 
-scores using violin plots / box plots, (iv) visualising the composition of 
-different clusters / groups of cells using proportion plots and (v) 
-visualising the expression of multiple genes using bubbleplots / heatmap. 
-Examples of ShinyCell-generated shiny apps for single and multi datasets can 
-be found at http://shinycell1.ddnetbio.com and http://shinycell2.ddnetbio.com 
-respectively.
+# pyShinyCell: Python-Enhanced Interactive Single-Cell Analysis
 
-If you are using `ShinyCell`, please cite [Ouyang et al. ShinyCell: Simple and 
-sharable visualisation of single-cell gene expression data. Bioinformatics, 
-doi:10.1093/bioinformatics/btab209](
-http://dx.doi.org/10.1093/bioinformatics/btab209). The manuscript 
-is recently accepted and we will update the full citation when it is available.
+**pyShinyCell** extends [ShinyCell](https://github.com/SGDDNB/ShinyCell) with Python-powered statistical analysis tools, enabling interactive single-cell genomics applications with integrated differential expression, enrichment analysis, and correlation networks.
 
-Key features of `ShinyCell` include: 
+[![R package](https://img.shields.io/badge/R%20package-v0.1.0-blue.svg)](https://github.com/Olivier-Delaneau/pyShinyCell)
+[![Python integration](https://img.shields.io/badge/Python%20integration-scanpy%20%2B%20gseapy-green.svg)](#python-analysis)
 
-1. Written in R and uses the Shiny package, allowing for easy sharing on online 
-   platforms e.g. [shinyapps.io](https://www.shinyapps.io/) and Amazon Web 
-   Services (AWS) or be hosted via Shiny Server
+## Features
 
-2. Supports all of the major single-cell data formats (h5ad / loom / Seurat / 
-   SingleCellExperiment) and we also include a simple tutorial to process 
-   plain-text gene expression matrices
-  
-3. Web interface have low memory footprint due to the use of hdf5 file system 
-   to store the gene expression. Only the expression of genes that are plotted 
-   are loaded into memory
+### 🎯 Core Capabilities
 
-4. Inclusion of less common single-cell visualisations, namely coexpression 
-   plots and proportion plots that provide additional information on top of 
-   low-dimensional embeddings
-  
-5. Users can export visualisations as PDF or PNG images for presentation or 
-   publication use
+- **Interactive web apps**: Built on Shiny for reproducible, shareable analysis interfaces
+- **Python integration**: Differential expression, enrichment, correlation analysis via Python (scanpy, gseapy)
+- **5 Custom analysis tabs**:
+  - Pairwise differential expression (DE1)
+  - All-vs-rest marker discovery (DE2)
+  - Gene set enrichment analysis (GSEA/Enrichr)
+  - Gene correlation networks
+  - TCR/BCR repertoire analysis
 
-6. Ability to include multiple single-cell datasets into a single Shiny web app
+- **H5AD-first**: Native [AnnData](https://anndata.readthedocs.io/) support for seamless Python workflows
+- **One-command generation**: Single `makePyShinyApp()` call generates a complete app
 
-7. It is easy to use and customise aethetsics e.g. label names and colour 
-   palettes. In the simplest form, ShinyCell can convert an input single-cell 
-   data into a Shiny app with five lines of code 
-   (see [Quick Start Guide](#quick-start-guide))
+### 📊 Visualization Features (Inherited from ShinyCell)
 
-We also compared ShinyCell with nine other popular scRNA-seq visualisation 
-tools, which further highlights the key features of `ShinyCell`. For a more 
-detailed description, see the 
-[Supplementary Information](docs/OuyangEtAl_Shinycell_SuppInfo.pdf).
+- Gene expression on 2D/3D embeddings (UMAP, t-SNE, etc.)
+- Cell metadata visualization with customizable colors
+- Gene co-expression plots
+- Violin plots, proportion plots, heatmaps
+- Interactive cell brushing and table display
+- Export plots as PDF/PNG
 
-![](images/comparison.png)
+### ⚡ Performance & Scalability
 
+- Memory-efficient: Gene expression stored in HDF5 (not RAM)
+- Handles datasets up to 100K+ cells
+- Low-latency web interface
+- Deployed on shinyapps.io, AWS, Shiny Server, or local networks
 
+### 🎨 Customization
 
-# Table of Contents and Additional Tutorials
-This readme is broken down into the following sections:
+- 30+ built-in color palettes (RColorBrewer, ggsci)
+- Custom color assignment for metadata
+- Enable/disable analysis tabs per app
+- Default genes and plot settings
+- Flexible metadata selection
 
-- [Installation](#installation) on how to install `ShinyCell`
+## Quick Start
 
-- [Quick Start Guide](#quick-start-guide) to rapidly deploy a shiny app with 
-  a few lines of code
+### Installation
 
-- [Frequently Asked Questions](#frequently-asked-questions)
+```r
+# Install Bioconductor dependencies (required)
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install(c("SummarizedExperiment", "qvalue", "fgsea"))
 
-There are also additional tutorials as follows:
+# Install from GitHub
+devtools::install_github("Olivier-Delaneau/pyShinyCell")
 
-- [Tutorial for customising ShinyCell aesthetics](
-https://htmlpreview.github.io/?https://github.com/SGDDNB/ShinyCell/blob/master/docs/1aesthetics.html)
-
-- [Tutorial for creating a ShinyCell app containing several single-cell datasets](
-https://htmlpreview.github.io/?https://github.com/SGDDNB/ShinyCell/blob/master/docs/2multi.html)
-
-- [Tutorial on other supported file formats (h5ad / loom / SCE)](
-https://htmlpreview.github.io/?https://github.com/SGDDNB/ShinyCell/blob/master/docs/3otherformat.html)
-
-- [Tutorial on processing plain-text gene expression matrices](
-https://htmlpreview.github.io/?https://github.com/SGDDNB/ShinyCell/blob/master/docs/3plaintext.html)
-
-- [Instructions on how to deploy ShinyCell apps online](
-https://htmlpreview.github.io/?https://github.com/SGDDNB/ShinyCell/blob/master/docs/4cloud.html)
-
-
-
-# Installation
-First, users can run the following code to check if the packages required by 
-`ShinyCell` exist and install them if required:
-``` r
-reqPkg = c("data.table", "Matrix", "hdf5r", "reticulate", "ggplot2", 
-           "gridExtra", "glue", "readr", "RColorBrewer", "R.utils", "Seurat")
-newPkg = reqPkg[!(reqPkg %in% installed.packages()[,"Package"])]
-if(length(newPkg)){install.packages(newPkg)}
-
-# If you are using h5ad file as input, run the code below as well
-# reticulate::py_install("anndata")
+# Python dependencies auto-setup on first use
+library(pyShinyCell)
+setupPythonEnv()  # One-time setup
 ```
 
-Furthermore, on the system where the Shiny app will be deployed, users can run 
-the following code to check if the packages required by the Shiny app exist 
-and install them if required:
-``` r
-reqPkg = c("shiny", "shinyhelper", "data.table", "Matrix", "DT", "hdf5r", 
-           "reticulate", "ggplot2", "gridExtra", "magrittr", "ggdendro")
-newPkg = reqPkg[!(reqPkg %in% installed.packages()[,"Package"])]
-if(length(newPkg)){install.packages(newPkg)}
+### Generate Your First App (3 Lines!)
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat_object.rds")
+
+makePyShinyApp(seu, shiny.dir = "myapp/", shiny.title = "My Analysis")
 ```
 
-`ShinyCell` can then be installed from GitHub as follows:
-``` r
-devtools::install_github("SGDDNB/ShinyCell")
+### Run the App
+
+```r
+shiny::runApp("myapp")
 ```
 
+Open `http://localhost:3838` in your browser. Done! 🎉
 
+## pyShinyCell vs ShinyCell
 
-# Quick Start Guide
-In short, the `ShinyCell` package takes in an input single-cell object and 
-generates a ShinyCell config `scConf` containing labelling and colour palette 
-information for the single-cell metadata. The ShinyCell config and single-cell 
-object are then used to generate the files and code required for the shiny app. 
+| Feature | ShinyCell | pyShinyCell |
+|---------|-----------|-------------|
+| Interactive visualization | ✅ | ✅ |
+| Metadata + gene expression plots | ✅ | ✅ |
+| HDF5-backed data | ✅ | ✅ |
+| Pairwise differential expression | ❌ | ✅ (DE1) |
+| All-vs-rest markers | ❌ | ✅ (DE2) |
+| Gene set enrichment (fgsea/enrichR) | ❌ | ✅ (GSEA) |
+| Correlation networks (igraph) | ❌ | ✅ |
+| TCR/repertoire analysis | ❌ | ✅ |
+| Python analysis integration | ❌ | ✅ |
+| H5AD support | Partial | ✅ (native) |
+| Single-command app generation | `makeShinyApp()` | ✅ `makePyShinyApp()` |
 
-In this example, we will use single-cell data (Seurat object) containing 
-intermediates collected during the reprogramming of human fibroblast into 
-induced pluripotent stem cells using the RSeT media condition, taken from 
-[Liu, Ouyang, Rossello et al. Nature (2020)](
-https://www.nature.com/articles/s41586-020-2734-6). The Seurat object can be 
-[downloaded here](http://files.ddnetbio.com/hrpiFiles/readySeu_rset.rds).
+## Full Example
 
-A shiny app can then be quickly generated using the following code:
- 
-``` r
-library(Seurat)
-library(ShinyCell)
+```r
+library(pyShinyCell)
+library(RColorBrewer)
 
-getExampleData()                       # Download example dataset (~200 MB)
-seu = readRDS("readySeu_rset.rds")
-scConf = createConfig(seu)
-makeShinyApp(seu, scConf, gene.mapping = TRUE,
-             shiny.title = "ShinyCell Quick Start") 
+# Load your Seurat object
+seu <- readRDS("mydata.rds")
+
+# Create configuration (optional, auto-created if omitted)
+sc_conf <- createPyConfig(seu, meta.to.include = c("cell_type", "batch"))
+
+# Customize colors
+colors <- brewer.pal(n_cell_types, "Set2")
+sc_conf$fCL[sc_conf$ID == "cell_type"] <- paste(colors, collapse = "|")
+
+# Generate customized app
+makePyShinyApp(
+  obj = seu,
+  scConf = sc_conf,
+  shiny.dir = "myapp/",
+  shiny.title = "My Customized App",
+
+  # Select analysis tabs
+  enable_tabs = c("de1", "de2", "gsea", "correlation"),
+
+  # Set defaults
+  default.gene1 = "NANOG",
+  default.gene2 = "POU5F1",
+
+  # Optimize files
+  remove_assays = c("integrated", "SCT"),
+  compress_h5ad = TRUE
+)
+
+# Run the app
+shiny::runApp("myapp")
 ```
 
-The generated shiny app can then be found in the `shinyApp/` folder (which is 
-the default output folder). To run the app locally, use RStudio to open either 
-`server.R` or `ui.R` in the shiny app folder and click on "Run App" in the top 
-right corner. The shiny app can also be deployed online via online platforms 
-e.g. [shinyapps.io](https://www.shinyapps.io/) and Amazon Web Services (AWS) 
-or be hosted via Shiny Server. For further details, refer to 
-[Instructions on how to deploy ShinyCell apps online](
-https://htmlpreview.github.io/?https://github.com/SGDDNB/ShinyCell/blob/master/docs/4cloud.html).
+## Documentation
 
-The shiny app contains seven tabs (highlighted in blue box), with the opening 
-page showing the first tab "CellInfo vs GeneExpr" (see below), plotting both 
-cell information and gene expression side-by-side on reduced dimensions e.g. 
-UMAP. Users can click on the toggle on the bottom left corner to display the 
-cell numbers in each cluster / group and the number of cells expressing a gene.
-The next two tabs are similar, showing either two cell information 
-side-by-side (second tab: "CellInfo vs CellInfo") or two gene expressions 
-side-by-side (third tab: "GeneExpr vs GeneExpr").
+### 📖 Getting Started
 
-![](images/quick-shiny1.png)
+See `vignette("getting-started")` for:
+- Installation and setup
+- Your first app in 3 steps
+- Understanding generated files
+- App interface overview
 
-The fourth tab "Gene coexpression" blends the gene expression of two genes, 
-given by two different colour hues, onto the same reduced dimensions plot. 
-Furthermore, the number of cells expressing either or both genes are given. 
+### 🎨 Customization Guide
 
-![](images/quick-shiny2.png)
+See `vignette("customization")` for:
+- Changing colors and metadata
+- Selecting analysis tabs
+- Setting default genes
+- Optimizing file size
+- Python environment configuration
 
-The fifth tab "Violinplot / Boxplot" plots the distribution of continuous cell 
-information e.g. nUMI or module scores or gene expression across each cluster 
-/ group using violin plots or box plots.
+### 🔧 Function Reference
 
-![](images/quick-shiny3.png)
+```r
+?makePyShinyApp       # Main API (orchestrates entire pipeline)
+?createPyConfig       # Create/modify configuration
+?makePyShinyFiles     # Generate data files
+?setupPythonEnv       # Setup Python environment
+?color_generator      # Generate custom colors
+?pal.info             # Available color palettes
+```
 
-The sixth tab "Proportion plot" plots the composition of different clusters / 
-groups of cells using proportion plots. Users can also plot the cell numbers 
-instead of proportions.
+### 📚 Additional Resources
 
-![](images/quick-shiny4.png)
+- **Reference implementation**: `system.file("extdata/shinyApp_stable", package = "pyShinyCell")`
+- **Parent framework**: [ShinyCell GitHub](https://github.com/SGDDNB/ShinyCell)
+- **Python analysis**: [scanpy documentation](https://scanpy.readthedocs.io/)
 
-The seventh tab "Bubbleplot / Heatmap" allows users to visualise the 
-expression of multiple genes across each cluster / group using bubbleplots / 
-heatmap. The genes (rows) and groups (columns) can be furthered clustered 
-using hierarchical clustering.
+## Python Analysis Details
 
-![](images/quick-shiny5.png)
+### What Python Does
 
+When you run analysis in the app (DE, GSEA, correlation):
 
+1. **Data**: Gene expression loaded from H5AD file
+2. **Analysis**: Computed using Python (scanpy, gseapy, scipy)
+3. **Results**: Cached in `tempData/` folder
+4. **Visualization**: Plotted in R/Shiny UI
 
-# Frequently Asked Questions
-- Q: How much memory / storage space does `ShinyCell` and the Shiny app consume?
-  - A: The Shiny app itself consumes very little memory and is meant to be a 
-       heavy-duty app where multiple users can access the app simultaneously. 
-       Unlike typical R objects, the entire gene expression matrix is stored 
-       on disk and *not on memory* via the hdf5 file system. Also, the hdf5 
-       file system offers superior file compression and takes up less storage 
-       space than native R file formats such as rds / Rdata files.
-  - A: It should be noted that a large amount of memory is required when 
-       *building* the Shiny app. This is because the whole Seurat / SCE object 
-       has to be loaded onto memory and additional memory is required to 
-       generate the required files. From experience, a typical laptop with 8GB 
-       RAM can handle datasets around 30k cells while 16GB RAM machines can 
-       handle around 60k-70k cells. 
-       
-- Q: I have generated additional dimension reductions (e.g. force-directed 
-layout / MDS / monocle2 etc.) and would like to include them into the Shiny 
-app. How do I do that?
-  - A: `ShinyCell` automatically retrieves dimension reduction information from 
-       the Seurat or SCE object. Thus, the additional dimension reductions 
-       have to be added into the Seurat or SCE object before running `ShinyCell`. 
-  - For Seurat objects, users can refer "Storing a custom dimensional reduction 
-       calculation" in https://satijalab.org/seurat/v3.0/dim_reduction_vignette.html
-  - For SCE objects, users can refer to https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#3_Adding_low-dimensional_representations
-  
-- Q: I have both RNA and integrated data in my Seurat object. How do I specify 
-which gene expression assay to plot in the Shiny app?
-  - A: Only one gene expression assay can be visualised per dataset. To 
-       specify the assay, use the `gex.assay = "integrated` argument in the 
-       `makeShinyApp()` or `makeShinyFiles()` functions. If users want to 
-       visualise both gene expression, they have to treat each assay as an 
-       individual dataset and include multiple datasets into a single shiny 
-       app, following the [Tutorial for creating a ShinyCell app containing several single-cell datasets](
-https://htmlpreview.github.io/?https://github.com/SGDDNB/ShinyCell/blob/master/docs/2multi.html)
+### Supported Analyses
 
+| Tab | Python Library | What It Does |
+|-----|----------------|--------------|
+| **DE1** | scanpy.tl.rank_genes_groups | Wilcoxon rank-sum test |
+| **DE2** | scanpy.tl.rank_genes_groups | Find markers per cluster |
+| **GSEA** | gseapy + fgsea | Pathway enrichment |
+| **Correlation** | scipy.stats | Spearman correlation |
+| **TCR** | scRepertoire (R) | Clonotype analysis |
 
+### Python Environment
 
-<br/><br/>
-<br/><br/>
-<br/><br/>
-<br/><br/>
-<br/><br/>
+pyShinyCell auto-manages a Python virtual environment (`~/.virtualenvs/pyShinyCell`) containing:
+- numpy, pandas, scipy, h5py
+- scanpy (single-cell analysis)
+- gseapy (enrichment analysis)
+
+To use a custom Python environment:
+
+```r
+makePyShinyApp(seu, python_env = "my_env", ...)
+```
+
+## System Requirements
+
+### For App Generation
+- R ≥ 3.5
+- RAM: 8-16 GB (for building app with typical datasets)
+- Python 3.6+ (auto-installed with reticulate)
+
+### For Running Generated App
+- Minimal: Works on laptops, servers, cloud platforms
+- Memory: <1 GB (data loaded via HDF5)
+- Network: Can be accessed remotely
+
+## Use Cases
+
+✅ **Research labs**: Share analysis with collaborators
+✅ **Clinical settings**: Enable non-programmers to explore data
+✅ **Teaching**: Interactive single-cell analysis demonstrations
+✅ **Publications**: Supplementary interactive figures
+✅ **Companies**: Internal data exploration tools
+
+## Citation
+
+If you use **pyShinyCell**, please cite both:
+
+**pyShinyCell** (this package):
+```bibtex
+@software{pyShinyCell2024,
+  title={pyShinyCell: Python-Enhanced Interactive Single-Cell Analysis},
+  author={Hu, Yang},
+  year={2024},
+  url={https://github.com/Olivier-Delaneau/pyShinyCell}
+}
+```
+
+**ShinyCell** (parent framework):
+```bibtex
+@article{Ouyang2021,
+  title={ShinyCell: Simple and sharable visualisation of single-cell gene expression data},
+  author={Ouyang, JF and others},
+  journal={Bioinformatics},
+  year={2021},
+  doi={10.1093/bioinformatics/btab209}
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Q: Python module not found**
+```r
+# Reinstall Python environment
+setupPythonEnv(venv_name = "pyShinyCell", force = TRUE)
+```
+
+**Q: App generation is slow**
+- First run: Normal (creates HDF5 files)
+- Subsequent runs: Caches data
+- Tip: Remove large assays to speed up: `remove_assays = c("integrated")`
+
+**Q: Gene names don't match**
+- Check available genes: `head(rownames(seu), 20)`
+- Enable gene ID mapping: `gene.mapping = TRUE`
+
+**Q: File size is too large**
+- Enable compression: `compress_h5ad = TRUE`
+- Remove unneeded assays: `remove_assays = c("integrated", "SCT")`
+- Skip H5AD if Python analysis not needed: `generate_h5ad = FALSE`
+
+## Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request with description
+
+## License
+
+GPL-3 (same as parent ShinyCell project)
+
+## Acknowledgments
+
+pyShinyCell builds on the excellent [ShinyCell](https://github.com/SGDDNB/ShinyCell) framework by Ouyang et al., extending it with Python analysis capabilities for comprehensive single-cell analysis workflows.
+
+---
+
+**Get started**: `vignette("getting-started")`
+**Customize**: `vignette("customization")`
+**Report issues**: [GitHub Issues](https://github.com/Olivier-Delaneau/pyShinyCell/issues)

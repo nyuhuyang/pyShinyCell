@@ -14,7 +14,15 @@
 #' @import data.table
 #'
 #' @examples
-#' scConf = delMeta(scConf, c("orig.ident"))
+#' # Create minimal example config
+#' scConf <- data.table::data.table(
+#'   ID = c("cell_type", "batch", "orig.ident"),
+#'   UI = c("Cell Type", "Batch", "Original Ident"),
+#'   fID = c("TypeA|TypeB", "B1|B2", "S1|S2"),
+#'   default = c(1, 0, 0)
+#' )
+#' # Remove orig.ident
+#' scConf <- delMeta(scConf, c("orig.ident"))
 #'
 #' @export
 delMeta <- function(scConf, meta.to.del){

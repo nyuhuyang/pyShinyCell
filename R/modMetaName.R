@@ -21,9 +21,17 @@
 #' @import data.table
 #'
 #' @examples
-#' scConf = modMetaName(scConf, 
-#'                      meta.to.mod = c("orig.ident", "seurat_clusters"), 
-#'                      new.name = c("library", "cluster"))
+#' # Create minimal example config
+#' scConf <- data.table::data.table(
+#'   ID = c("orig.ident", "seurat_clusters"),
+#'   UI = c("Original Ident", "Seurat Clusters"),
+#'   fID = c("S1|S2", "C1|C2|C3"),
+#'   default = c(1, 0)
+#' )
+#' # Rename columns
+#' scConf <- modMetaName(scConf,
+#'                       meta.to.mod = c("orig.ident", "seurat_clusters"),
+#'                       new.name = c("library", "cluster"))
 #'
 #' @export
 modMetaName <- function(scConf, meta.to.mod, new.name){

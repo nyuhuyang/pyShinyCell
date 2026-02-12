@@ -13,7 +13,7 @@
 #' @import data.table
 #'
 #' @examples
-#' getExampleData()
+#' # This is typically called internally or requires setup.
 #'
 #' @export
 getExampleData <- function(type = c("single", "multi", "h5ad", "loom", 

@@ -18,7 +18,7 @@ Download example Seurat objects / single-cell data required for
 ShinyCell tutorials.
 }
 \examples{
-getExampleData()
+# This is typically called internally or requires setup.
 
 }
 \author{

@@ -40,7 +40,11 @@ categories of categorical metadata and (iii) colour palettes associated
 with each metadata.
 }
 \examples{
-scConf = createConfig(obj)
+# Load example Seurat object
+seu <- readRDS(system.file("extdata/readySeu_rset.rds", package = "pyShinyCell"))
+
+# Create configuration from Seurat object
+scConf <- createConfig(seu)
 
 }
 \author{

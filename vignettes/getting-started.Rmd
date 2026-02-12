@@ -1,0 +1,312 @@
+---
+title: "Getting Started with pyShinyCell"
+author: "Yang Hu"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with pyShinyCell}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## What is pyShinyCell?
+
+**pyShinyCell** extends the [ShinyCell](https://github.com/SGDDNB/ShinyCell) framework with Python-powered analysis capabilities for interactive single-cell genomics web applications.
+
+Key features that go beyond ShinyCell:
+
+- **Python Integration**: Differential expression, gene set enrichment, and correlation analysis via Python (scanpy, gseapy)
+- **5 Custom Analysis Tabs**:
+  - Pairwise differential expression (DE1)
+  - All-vs-rest marker discovery (DE2)
+  - Pathway enrichment analysis (GSEA)
+  - Gene correlation networks
+  - TCR/BCR repertoire analysis
+- **H5AD First**: Native [AnnData](https://anndata.readthedocs.io/) support for efficient Python workflows
+- **One-Command Generation**: Single `makePyShinyApp()` function generates a complete, production-ready Shiny application
+
+pyShinyCell is perfect if you need:
+- Interactive exploration of single-cell RNA-seq data
+- Python-based statistical analysis within a web UI
+- Reproducible analysis pipelines that non-programmers can use
+- Quick deployment without writing custom R/Shiny code
+
+## Installation
+
+### R Package
+
+Install pyShinyCell from GitHub:
+
+```r
+# Install devtools if you don't have it
+install.packages("devtools")
+
+# Install Bioconductor dependencies
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install(c("SummarizedExperiment", "qvalue", "fgsea"))
+
+# Install pyShinyCell
+devtools::install_github("nyuhuyang/pyShinyCell")
+```
+
+### Python Dependencies
+
+pyShinyCell automatically sets up a Python virtual environment when you first use it. The setup includes:
+- Core tools: numpy, pandas, scipy, h5py
+- Analysis packages: scanpy, gseapy
+- R integration: reticulate (handles communication between R and Python)
+
+To manually set up the Python environment:
+
+```r
+library(pyShinyCell)
+
+# Initialize Python environment (one-time setup)
+setupPythonEnv(venv_name = "pyShinyCell")
+
+# Check that Python is ready
+reticulate::py_config()
+```
+
+If you encounter Python issues, see the troubleshooting section below.
+
+## Your First App in 3 Steps
+
+The easiest way to get started is with a Seurat object:
+
+### Step 1: Load Your Data
+
+```r
+library(pyShinyCell)
+
+# Option A: Use a Seurat object you already have
+seu <- readRDS("path/to/your/seurat_object.rds")
+
+# Option B: Try the reference data (included with package)
+# seu <- readRDS(system.file("extdata", "example.rds", package = "pyShinyCell"))
+```
+
+### Step 2: Generate the Shiny App
+
+```r
+# Create the app (this is all you need!)
+makePyShinyApp(
+  obj = seu,
+  shiny.dir = "myapp/",
+  shiny.title = "My Single-Cell Analysis"
+)
+```
+
+That's it! The function:
+1. Creates a configuration from your data
+2. Generates data files (RDS, HDF5, H5AD)
+3. Generates the complete Shiny app code
+4. Sets up the Python environment (first time only)
+
+Expect this to take **2-10 minutes** depending on dataset size (generates HDF5 files efficiently). During generation, you'll see progress messages.
+
+### Step 3: Run the App
+
+```r
+# Launch your app
+shiny::runApp("myapp")
+```
+
+Open your browser to `http://localhost:3838` and start exploring!
+
+## Understanding the Generated App
+
+### Generated Files
+
+After running `makePyShinyApp()`, you'll see these files in your app directory:
+
+**Data Files:**
+- `sc1conf.rds` — Configuration (metadata, colors, labels)
+- `sc1meta.rds` — Cell metadata (cell types, batch, etc.)
+- `sc1gene.rds` — Gene name mappings
+- `sc1gexpr.h5` — Gene expression matrix (HDF5 format, memory-efficient)
+- `sc1gexpr.h5ad` — Same data in AnnData format (for Python analysis)
+- `sc1maxlvl.rds` — Maximum expression per gene (for scaling)
+- `sc1def.rds` — Default plot settings
+
+**Code Files:**
+- `server.R` — Shiny server logic (~1500 lines, handles interactivity)
+- `ui.R` — User interface (~2300 lines, defines layouts and controls)
+- `global.R` — Initialization (loads data, sets up Python)
+- `util.R` — Helper functions for plotting and analysis (~3600 lines)
+- `util_palette.R` — Color palette utilities
+
+**Runtime Files (created when users interact with the app):**
+- `tempData/` — Cached analysis results (DE, GSEA, correlations)
+
+Note: Data files use the prefix `sc1` by default. You can change this with the `shiny.prefix` parameter.
+
+### App Interface
+
+The generated Shiny app has a clean layout with tabs:
+
+**Standard ShinyCell Tabs:**
+- **Cell Information**: Browse cell metadata, filter by attributes
+- **Gene Expression**: Visualize expression of individual genes
+- **Dimension Reduction**: Explore 2D projections (UMAP, t-SNE, etc.)
+
+**Custom pyShinyCell Tabs (if enabled):**
+- **DE1 (Pairwise)**: Compare expression between two groups
+- **DE2 (All-vs-Rest)**: Find markers for each cell type/cluster
+- **GSEA**: Pathway and gene set enrichment analysis
+- **Correlation**: Gene-to-gene correlation networks
+- **TCR**: T cell clonotype and repertoire analysis (if TCR data included)
+
+Select which tabs to enable using the `enable_tabs` parameter in `makePyShinyApp()`.
+
+## Exploring Your App
+
+Once the app is running, here's a quick tour:
+
+### Finding Your Data
+
+1. **Cell colors by metadata**: The left sidebar has dropdowns for each metadata variable (cell type, batch, etc.). Select a variable to color cells by that attribute.
+
+2. **Gene expression**: Type a gene name in the "Gene 1" field. The app shows:
+   - Expression levels in the current 2D plot
+   - A bar plot of mean expression by cell type
+   - Expression statistics
+
+3. **Interaction**: Click on cells in the plot to highlight them. The data table updates to show selected cells.
+
+### Running an Analysis
+
+Example: Find markers for your favorite cell type
+
+1. Go to **DE2 (All-vs-Rest)** tab
+2. Select your cell type from "Select Cell Type"
+3. Click "Run Analysis"
+4. Results appear in a few seconds:
+   - Volcano plot showing log-fold-change vs p-value
+   - Interactive table of significant genes
+   - Download results as CSV
+
+Analysis results are cached in `tempData/`, so re-running the same analysis is instant.
+
+## Key Parameters
+
+Here are common customizations for `makePyShinyApp()`:
+
+```r
+makePyShinyApp(
+  # Your data
+  obj = seu,
+
+  # Output location and title
+  shiny.dir = "myapp/",
+  shiny.title = "My Analysis",
+
+  # Which analysis tabs to include
+  enable_tabs = c("de1", "de2", "gsea", "correlation", "tcr"),
+
+  # Default genes to show
+  default.gene1 = "NANOG",
+  default.gene2 = "POU5F1",
+
+  # File naming (default "sc1")
+  shiny.prefix = "sc1",
+
+  # Optimize file size
+  remove_assays = c("integrated", "SCT"),  # Keep only RNA
+  compress_h5ad = TRUE,  # Compress H5AD files
+
+  # Python environment
+  python_env = "pyShinyCell"
+)
+```
+
+For all parameters and their meanings, see `?makePyShinyApp`.
+
+## Troubleshooting
+
+### "Python not found" / "Module not found"
+
+This usually means the Python environment isn't set up correctly. Fix it:
+
+```r
+# Re-initialize Python environment
+setupPythonEnv(venv_name = "pyShinyCell", force = TRUE)
+
+# Check configuration
+reticulate::py_config()
+
+# Try again
+makePyShinyApp(seu, shiny.dir = "myapp/")
+```
+
+### App runs slowly / Large file sizes
+
+The first generation is slow due to HDF5 creation. Subsequent runs are faster.
+
+To optimize:
+
+```r
+makePyShinyApp(
+  obj = seu,
+  remove_assays = c("integrated", "SCT"),  # Drop unnecessary assays
+  compress_h5ad = TRUE,                     # Compress H5AD
+  generate_h5ad = FALSE                     # Skip H5AD if not needed
+)
+```
+
+### "Gene not found" in expression plot
+
+Gene names must match your Seurat object's `rownames()`. Check available genes:
+
+```r
+head(rownames(seu))
+
+# If genes use Ensembl IDs but you want symbols, enable gene mapping
+makePyShinyApp(seu, gene.mapping = TRUE, shiny.dir = "myapp/")
+```
+
+### Analysis hangs or crashes
+
+If Python analysis (DE, GSEA) seems frozen:
+
+1. Check the R console for error messages
+2. Stop the app (Ctrl+C in R console)
+3. Check file permissions in `tempData/`
+4. Try with a smaller dataset first
+5. Report issues on GitHub with error messages
+
+## Next Steps
+
+You're now ready to explore your data! Here are common follow-up tasks:
+
+- **Customize colors and labels**: See `vignette("customization")` for config modifications
+- **Control which tabs appear**: Use `enable_tabs` to show/hide analysis types
+- **Set different default genes**: Change `default.gene1` and `default.gene2`
+- **Understand the config system**: Learn about the `scConf` data structure in `?createPyConfig`
+
+## Reference Implementation
+
+A complete, working pyShinyCell app is included in the package for reference:
+
+```r
+# View the reference app directory structure
+system.file("extdata/shinyApp_stable", package = "pyShinyCell")
+
+# Or run it directly
+shiny::runApp(system.file("extdata/shinyApp_stable", package = "pyShinyCell"))
+```
+
+This app demonstrates all features. Explore it to see what's possible!
+
+## Getting Help
+
+- **Function documentation**: `?makePyShinyApp`, `?createPyConfig`, etc.
+- **Report issues**: GitHub issues page
+- **ShinyCell documentation**: See [ShinyCell GitHub](https://github.com/SGDDNB/ShinyCell) for parent framework docs

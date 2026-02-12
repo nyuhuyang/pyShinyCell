@@ -32,7 +32,19 @@
 #' @import data.table reticulate hdf5r
 #'
 #' @examples
-#' scConf = makeMetaCategorical(scConf, "clusterID", loom_obj)
+#' # Load example Seurat object
+#' seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+#'
+#' # Create minimal config
+#' scConf <- data.table::data.table(
+#'   ID = c("orig.ident"),
+#'   UI = c("Original Identity"),
+#'   fID = c(NA),
+#'   default = c(0)
+#' )
+#'
+#' # Make metadata categorical
+#' scConf <- makeMetaCategorical(scConf, "orig.ident", seu)
 #'
 #' @export
 makeMetaCategorical <- function(scConf, meta.to.input, obj, maxLevels = 50){

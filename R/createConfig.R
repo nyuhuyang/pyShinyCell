@@ -32,7 +32,11 @@
 #' @import data.table reticulate hdf5r
 #'
 #' @examples
-#' scConf = createConfig(obj)
+#' # Load example Seurat object
+#' seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+#'
+#' # Create configuration from Seurat object
+#' scConf <- createConfig(seu)
 #'
 #' @export
 createConfig <- function(obj, meta.to.include = NA, legendCols = 4,

@@ -20,7 +20,15 @@ updated shinycell config data.table
 Remove a metadata from being included in the shiny app.
 }
 \examples{
-scConf = delMeta(scConf, c("orig.ident"))
+# Create minimal example config
+scConf <- data.table::data.table(
+  ID = c("cell_type", "batch", "orig.ident"),
+  UI = c("Cell Type", "Batch", "Original Ident"),
+  fID = c("TypeA|TypeB", "B1|B2", "S1|S2"),
+  default = c(1, 0, 0)
+)
+# Remove orig.ident
+scConf <- delMeta(scConf, c("orig.ident"))
 
 }
 \author{

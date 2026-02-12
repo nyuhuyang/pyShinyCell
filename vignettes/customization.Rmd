@@ -1,0 +1,481 @@
+---
+title: "Customizing Your pyShinyCell App"
+author: "Yang Hu"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Customizing Your pyShinyCell App}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+By default, `makePyShinyApp()` automatically creates an app that's ready to use. But you often want to customize how your app looks and behaves:
+
+- Change colors for cell types or other metadata
+- Select which analysis tabs to show
+- Set default genes to display
+- Remove large assays to save space
+- Use custom palettes
+- Include sample-specific metadata
+
+This guide shows how to customize your app through the configuration system.
+
+## Configuration Basics
+
+Every pyShinyCell app has a **configuration object** (`scConf`) that controls:
+- Which metadata variables to display
+- Colors for categorical variables
+- Plot defaults
+- Which analyses are available
+
+The configuration is automatically created from your data, but you can modify it before app generation.
+
+### Creating and Inspecting Configuration
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+
+# Create configuration from data
+sc_conf <- createPyConfig(
+  obj = seu,
+  meta.to.include = colnames(seu@meta.data)  # Include all metadata
+)
+
+# Inspect the configuration
+head(sc_conf)
+```
+
+The configuration is a `data.table` with these key columns:
+
+| Column | Meaning | Example |
+|--------|---------|---------|
+| `UI` | Display name in app | "Cell Type" |
+| `ID` | Internal identifier | "cell.types" |
+| `uiType` | Data type | "factor", "numeric" |
+| `fCL` | Factor colors (pipe-separated) | "red\|blue\|green" |
+| `default` | Default in plots | "TRUE" or "FALSE" |
+| `py_analysis` | Suitable for Python analysis | "TRUE" or "FALSE" |
+| `order` | Display order | 1, 2, 3... |
+
+Let's customize each of these.
+
+## Customization 1: Change Colors
+
+The most common customization is changing colors for categorical metadata (cell types, samples, conditions).
+
+### Manual Color Assignment
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+sc_conf <- createPyConfig(seu)
+
+# Get unique cell types
+cell_types <- unique(seu@meta.data$cell.types)
+cat("Cell types:", paste(cell_types, collapse = ", "), "\n")
+
+# Define custom colors (one color per level, pipe-separated)
+my_colors <- c("red", "blue", "green", "yellow")
+color_string <- paste(my_colors, collapse = "|")
+
+# Assign to configuration
+sc_conf$fCL[sc_conf$ID == "cell.types"] <- color_string
+
+# Generate app with custom colors
+makePyShinyApp(
+  obj = seu,
+  scConf = sc_conf,
+  shiny.dir = "myapp/",
+  shiny.title = "Colored by My Preferences"
+)
+```
+
+### Using Built-in Palettes
+
+pyShinyCell includes 30+ color palettes from [RColorBrewer](https://colorbrewer2.org/) and [ggsci](https://github.com/nanxstats/ggsci):
+
+```r
+library(pyShinyCell)
+
+# Load palette metadata
+data(pal.info)
+
+# See available palettes
+head(pal.info)
+
+# Find a palette you like (e.g., "Set1")
+my_palette <- pal.info$pal.setup[[which(pal.info$pal == "Set1")]]
+
+# Convert to pipe-separated string
+color_string <- paste(my_palette, collapse = "|")
+
+# Assign to config
+seu <- readRDS("path/to/your/seurat.rds")
+sc_conf <- createPyConfig(seu)
+sc_conf$fCL[sc_conf$ID == "cell.types"] <- color_string
+
+makePyShinyApp(obj = seu, scConf = sc_conf, shiny.dir = "myapp/")
+```
+
+### Custom Palette Generation
+
+For more control, generate custom palettes:
+
+```r
+library(pyShinyCell)
+
+# Generate colors with custom gradient
+my_colors <- color_generator(n = 10, palette = "rainbow")
+
+# Or create a 2D gradient for numeric metadata
+my_colors <- colorRamp2D(
+  min_color = "white",
+  max_color = "red",
+  n_colors = 50
+)
+
+# Use in config
+color_string <- paste(my_colors, collapse = "|")
+sc_conf$fCL[sc_conf$ID == "some_metadata"] <- color_string
+```
+
+See `?color_generator` for available palettes: "rainbow", "viridis", "magma", "plasma", "inferno", and many more.
+
+## Customization 2: Select Analysis Tabs
+
+Control which of the 5 custom analysis tabs appear in your app.
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+
+# Only show DE and GSEA tabs
+makePyShinyApp(
+  obj = seu,
+  enable_tabs = c("de1", "gsea"),
+  shiny.dir = "myapp/"
+)
+```
+
+Available tabs:
+
+- **"de1"** — Pairwise differential expression (compare two groups)
+- **"de2"** — All-vs-rest marker finding (find markers for each cluster)
+- **"gsea"** — Gene set enrichment analysis (pathway analysis)
+- **"correlation"** — Gene correlation networks (find co-expressed genes)
+- **"tcr"** — TCR/BCR repertoire analysis (if TCR data in `seu@meta.data`)
+
+Example: Show only pathway analysis
+
+```r
+makePyShinyApp(
+  obj = seu,
+  enable_tabs = "gsea",  # Only GSEA
+  shiny.dir = "myapp/"
+)
+```
+
+## Customization 3: Set Default Genes
+
+Control which genes appear by default when users open the app.
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+
+makePyShinyApp(
+  obj = seu,
+  default.gene1 = "NANOG",           # First gene in dual-gene plots
+  default.gene2 = "POU5F1",          # Second gene (OCT4)
+  default.multigene = c("SOX2", "KLF4", "MYC"),  # Multi-gene view
+  shiny.dir = "myapp/"
+)
+```
+
+Genes must exist in your Seurat object. Check available genes:
+
+```r
+# First 50 genes
+head(rownames(seu), 50)
+
+# Search for a gene
+grep("^NANOG$", rownames(seu), value = TRUE)
+```
+
+## Customization 4: Optimize File Size
+
+For large datasets, reduce file sizes by removing unnecessary assays and enabling compression.
+
+### Remove Large Assays
+
+Many Seurat objects have multiple assays (RNA, integrated, SCT, etc.). Keep only what you need:
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+
+# Check assays in your object
+Assays(seu)  # Shows all assays
+
+makePyShinyApp(
+  obj = seu,
+  remove_assays = c("integrated", "SCT"),  # Remove these, keep RNA
+  gex.assay = "RNA",                       # Use RNA for visualization
+  shiny.dir = "myapp/"
+)
+```
+
+This is especially important for integrated datasets where `"integrated"` assay can be very large.
+
+### Compress H5AD Files
+
+H5AD files can be large. Enable gzip compression:
+
+```r
+makePyShinyApp(
+  obj = seu,
+  compress_h5ad = TRUE,     # Compress (slower I/O, smaller files)
+  generate_h5ad = TRUE,     # Still create H5AD (needed for Python)
+  shiny.dir = "myapp/"
+)
+```
+
+**Tradeoff**: Compression reduces file size by ~50%, but reads are slightly slower during Python analysis. For most datasets, compression is worth it.
+
+### Skip H5AD if Not Using Python
+
+If you don't need Python analysis (no DE, GSEA, etc.), skip H5AD generation:
+
+```r
+makePyShinyApp(
+  obj = seu,
+  enable_tabs = NULL,         # No Python analysis tabs
+  generate_h5ad = FALSE,      # Don't create H5AD
+  shiny.dir = "myapp/"
+)
+```
+
+This saves significant disk space for expression-only apps.
+
+## Customization 5: Configure Metadata Selection
+
+Choose which metadata variables to include in the app.
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+
+# See all metadata
+colnames(seu@meta.data)
+
+# Create config with only selected metadata
+sc_conf <- createPyConfig(
+  obj = seu,
+  meta.to.include = c("cell.type", "sample", "batch", "condition"),
+  maxLevels = 50  # Only include categorical vars with <50 unique values
+)
+
+makePyShinyApp(
+  obj = seu,
+  scConf = sc_conf,
+  shiny.dir = "myapp/"
+)
+```
+
+The `maxLevels` parameter filters out metadata with too many unique values (e.g., cell barcodes, sample IDs with 10,000 unique values). Set it to what makes sense for your data.
+
+## Customization 6: Python Environment
+
+Use a custom Python virtual environment for analysis.
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+
+# Use a specific Python environment
+makePyShinyApp(
+  obj = seu,
+  python_env = "my_custom_env",
+  shiny.dir = "myapp/"
+)
+```
+
+The environment must have required packages (scanpy, gseapy, etc.) installed. To create a custom environment:
+
+```r
+# Create and setup environment with all dependencies
+reticulate::virtualenv_create("my_custom_env")
+setupPythonEnv(venv_name = "my_custom_env")
+```
+
+## Customization 7: Advanced Config Modifications
+
+For power users, modify any config columns directly:
+
+```r
+library(pyShinyCell)
+
+seu <- readRDS("path/to/your/seurat.rds")
+sc_conf <- createPyConfig(seu)
+
+# Inspect all columns
+colnames(sc_conf)
+head(sc_conf)
+
+# Modify display names (UI column)
+sc_conf$UI[sc_conf$ID == "cell.types"] <- "Cell Type (Annotated)"
+
+# Change default plots (default column)
+sc_conf$default[sc_conf$ID == "cell.types"] <- "FALSE"
+sc_conf$default[sc_conf$ID == "sample"] <- "TRUE"
+
+# Reorder variables in sidebar (order column)
+sc_conf$order <- 1:nrow(sc_conf)
+sc_conf$order[sc_conf$ID == "cell.types"] <- 1  # Put cell types first
+sc_conf$order[sc_conf$ID == "sample"] <- 2
+
+# Remove variables from app entirely
+# (Can't be done post-hoc, must exclude from meta.to.include)
+
+makePyShinyApp(
+  obj = seu,
+  scConf = sc_conf,
+  shiny.dir = "myapp/"
+)
+```
+
+See `?createPyConfig` for all config columns and their meanings.
+
+## Complete Example: Fully Customized App
+
+Here's a complete customization example combining several techniques:
+
+```r
+library(pyShinyCell)
+library(RColorBrewer)
+
+# Load data
+seu <- readRDS("mydata.rds")
+
+# 1. Create configuration with selected metadata
+sc_conf <- createPyConfig(
+  obj = seu,
+  meta.to.include = c("cell.type", "age", "condition"),
+  maxLevels = 50
+)
+
+# 2. Set custom colors using RColorBrewer palette
+colors <- brewer.pal(n_unique_cell_types, "Set2")
+color_string <- paste(colors, collapse = "|")
+sc_conf$fCL[sc_conf$ID == "cell.type"] <- color_string
+
+# 3. Update display names
+sc_conf$UI[sc_conf$ID == "cell.type"] <- "Cell Type (Annotated)"
+sc_conf$UI[sc_conf$ID == "condition"] <- "Treatment Condition"
+
+# 4. Generate app with all customizations
+makePyShinyApp(
+  obj = seu,
+  scConf = sc_conf,
+  shiny.dir = "myapp_custom/",
+  shiny.title = "My Fully Customized Analysis",
+
+  # Select which analysis tabs to show
+  enable_tabs = c("de1", "gsea", "correlation"),
+
+  # Set defaults
+  default.gene1 = "TP53",
+  default.gene2 = "BRCA1",
+
+  # Optimize files
+  remove_assays = c("integrated", "SCT"),
+  compress_h5ad = TRUE,
+
+  # Python setup
+  python_env = "myanalysis"
+)
+
+# 5. Run the app
+shiny::runApp("myapp_custom/")
+```
+
+## Understanding the Config Structure
+
+The configuration (`scConf`) is a `data.table` controlling app appearance. Key columns:
+
+```r
+sc_conf <- createPyConfig(seu)
+
+# View structure
+str(sc_conf)
+
+# Each row is one metadata variable
+head(sc_conf, 3)
+
+# Columns explained:
+# UI             — Display name in app
+# ID             — Internal identifier (from seu@meta.data)
+# uiType         — "factor" or "numeric"
+# fCL            — Factor colors: "color1|color2|color3..." (factors only)
+# default        — Show by default: "TRUE" or "FALSE"
+# fRow           — Show in detail view: "TRUE" or "FALSE"
+# show           — Include in app: "TRUE" or "FALSE"
+# legend         — Show legend: "TRUE" or "FALSE"
+# order          — Display order (numeric)
+# py_analysis    — Can use for Python analysis: "TRUE" or "FALSE"
+```
+
+## Tips and Best Practices
+
+1. **Test before deploying**: After customization, run your app locally first
+   ```r
+   shiny::runApp("myapp/")
+   ```
+
+2. **Save your config**: Once you have a config you like, save it
+   ```r
+   saveRDS(sc_conf, "my_config.rds")
+
+   # Reuse it later
+   sc_conf <- readRDS("my_config.rds")
+   makePyShinyApp(seu, scConf = sc_conf, ...)
+   ```
+
+3. **Colors for colorblind-friendly palettes**: Use [Color Brewer](http://colorbrewer2.org/) (included in pyShinyCell)
+   ```r
+   # Colorblind-safe palettes
+   data(pal.info)
+   pal.info[pal.info$colorblind == "TRUE", ]
+   ```
+
+4. **Keep metadata meaningful**: Remove redundant or uninformative metadata variables before creating config
+
+5. **Document your choices**: Add comments explaining color meanings
+   ```r
+   # Assign colors: Naive (blue), Memory (red), Activated (green)
+   sc_conf$fCL[sc_conf$ID == "immune_state"] <- "blue|red|green"
+   ```
+
+## Next Steps
+
+- See `?makePyShinyApp` for all parameters
+- See `?createPyConfig` for config creation options
+- See `vignette("getting-started")` for basic workflow
+- Check reference implementation: `system.file("extdata/shinyApp_stable", package = "pyShinyCell")`

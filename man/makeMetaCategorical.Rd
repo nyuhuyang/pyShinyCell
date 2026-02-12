@@ -40,7 +40,19 @@ as discrete metadata automatically. This is especially important when
 working with loom files as they do not support factors/levels by default.
 }
 \examples{
-scConf = makeMetaCategorical(scConf, "clusterID", loom_obj)
+# Load example Seurat object
+seu <- readRDS(system.file("extdata/readySeu_rset.rds", package = "pyShinyCell"))
+
+# Create minimal config
+scConf <- data.table::data.table(
+  ID = c("orig.ident"),
+  UI = c("Original Identity"),
+  fID = c(NA),
+  default = c(0)
+)
+
+# Make metadata categorical
+scConf <- makeMetaCategorical(scConf, "orig.ident", seu)
 
 }
 \author{

@@ -29,13 +29,13 @@ data or input file path for h5ad / loom files}
 \item{gex.assay}{assay in single-cell data object to use for plotting 
 gene expression, which must match one of the following:
 \itemize{
-  \item{Seurat objects}: "RNA" or "integrated" assay, 
+  \item Seurat objects: "RNA" or "integrated" assay,
     default is "RNA"
-  \item{SCE objects}: "logcounts" or "normcounts" or "counts", 
+  \item SCE objects: "logcounts" or "normcounts" or "counts",
     default is "logcounts"
-  \item{h5ad files}: "X" or any assay in "layers",
+  \item h5ad files: "X" or any assay in "layers",
     default is "X"
-  \item{loom files}: "matrix" or any assay in "layers",
+  \item loom files: "matrix" or any assay in "layers",
     default is "matrix"
 }}
 
@@ -79,23 +79,15 @@ Make a shiny app based on the shinycell config data.table and single-cell
 data object.
 }
 \examples{
-# Example citation
-citation = list(
-  author  = "Liu X., Ouyang J.F., Rossello F.J. et al.",
-  title   = "",
-  journal = "Nature",
-  volume  = "586",
-  page    = "101-107",
-  year    = "2020", 
-  doi     = "10.1038/s41586-020-2734-6",
-  link    = "https://www.nature.com/articles/s41586-020-2734-6")
-makeShinyApp(seu, scConf, 
-             shiny.title = "scRNA-seq Shiny app",
-             shiny.dir = "shinyApp/", shiny.footnotes = citation,
-             default.gene1 = "NANOG", default.gene2 = "DNMT3L",
-             default.multigene = c("ANPEP","NANOG","ZIC2","NLGN4X","DNMT3L",
-                                   "DPPA5","SLC7A2","GATA3","KRT19"),
-             default.dimred = c("UMAP_1", "UMAP_2")) 
+# Load example Seurat object from package
+seu <- readRDS(system.file("extdata/readySeu_rset.rds", package = "pyShinyCell"))
+
+# Create configuration from Seurat object
+scConf <- createConfig(seu)
+
+# This is typically used to generate a Shiny app:
+# makeShinyApp(seu, scConf, shiny.dir = "myapp/",
+#              shiny.title = "My Single Cell Analysis")
 
 }
 \author{

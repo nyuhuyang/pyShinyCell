@@ -14,7 +14,15 @@
 #' @import data.table
 #'
 #' @examples
-#' scConf = reorderMeta(scConf, scConf$ID[c(1,3,2,4:length(scConf$ID))])
+#' # Create minimal example config
+#' scConf <- data.table::data.table(
+#'   ID = c("cell_type", "batch", "condition"),
+#'   UI = c("Cell Type", "Batch", "Condition"),
+#'   fID = c("TypeA|TypeB", "B1|B2", NA),
+#'   default = c(1, 0, 0)
+#' )
+#' # Reorder: batch first, then cell_type, then condition
+#' scConf <- reorderMeta(scConf, c("batch", "cell_type", "condition"))
 #'
 #' @export
 reorderMeta <- function(scConf, new.meta.order){

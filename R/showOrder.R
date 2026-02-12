@@ -13,6 +13,15 @@
 #' @import data.table grid gridExtra
 #'
 #' @examples
+#' # Create minimal example config
+#' scConf <- data.table::data.table(
+#'   ID = c("cell_type", "batch", "condition"),
+#'   UI = c("Cell Type", "Batch", "Condition"),
+#'   fID = c("TypeA|TypeB|TypeC", "Batch1|Batch2", NA),
+#'   default = c(1, 0, 0),
+#'   order = c(1, 2, 3)
+#' )
+#' # Show the order of metadata
 #' showOrder(scConf)
 #' 
 #' @export
