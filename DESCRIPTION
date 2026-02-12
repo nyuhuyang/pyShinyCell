@@ -65,3 +65,5 @@ RoxygenNote: 7.3.2
 VignetteBuilder: knitr
 URL: https://github.com/nyuhuyang/pyShinyCell
 BugReports: https://github.com/nyuhuyang/pyShinyCell/issues
+Remotes:
+    SGDDNB/ShinyCell
