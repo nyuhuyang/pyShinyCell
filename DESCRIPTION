@@ -50,7 +50,6 @@ Suggests:
     ggpmisc,
     shinyhelper  (>= 0.3.2),
     Seurat               (>= 3.0.0),
-    SeuratDisk,
     SingleCellExperiment (>= 1.4.1),
     devtools             (>= 2.3.0),
     roxygen2             (>= 7.1.1),
@@ -66,5 +65,4 @@ VignetteBuilder: knitr
 URL: https://github.com/nyuhuyang/pyShinyCell
 BugReports: https://github.com/nyuhuyang/pyShinyCell/issues
 Remotes:
-    SGDDNB/ShinyCell,
-    mojaveazure/seurat-disk
+    SGDDNB/ShinyCell
