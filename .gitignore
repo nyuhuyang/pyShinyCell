@@ -46,6 +46,10 @@ vignettes/*.pdf
 # Claude Code
 .claude/
 
+# Cache and build directories
+.cache/
+.github/
+
 # Local config / environment/ folder
 .config/
 .local/
