@@ -1,0 +1,17 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^doc$
+^Meta$
+^shinyApp_develop$
+^shinyApp_stable$
+^CLAUDE\.md$
+^REFACTORING_PLAN\.md$
+^NEWS\.md$
+^Rplots\.pdf$
+^docs$
+^images$
+^jupyter$
+^pyShinyCell\.R$
+^\.cache$
+^\.sh_history$
+^\.github$
