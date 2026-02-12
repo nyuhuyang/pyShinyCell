@@ -1,10 +1,10 @@
-<<<<<<< HEAD
 # pyShinyCell: Python-Enhanced Interactive Single-Cell Analysis
 
 **pyShinyCell** extends [ShinyCell](https://github.com/SGDDNB/ShinyCell) with Python-powered statistical analysis tools, enabling interactive single-cell genomics applications with integrated differential expression, enrichment analysis, and correlation networks.
 
-[![R package](https://img.shields.io/badge/R%20package-v0.1.0-blue.svg)](https://github.com/Olivier-Delaneau/pyShinyCell)
+[![R package](https://img.shields.io/badge/R%20package-v0.1.0-blue.svg)](https://github.com/nyuhuyang/pyShinyCell)
 [![Python integration](https://img.shields.io/badge/Python%20integration-scanpy%20%2B%20gseapy-green.svg)](#python-analysis)
+[![R-CMD-check](https://github.com/nyuhuyang/pyShinyCell/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/nyuhuyang/pyShinyCell/actions/workflows/R-CMD-check.yml)
 =======
 # pyShinyCell package
 `pyShinyCell` is a R + python package that allows users to create interactive Shiny-based 
@@ -26,7 +26,6 @@ http://dx.doi.org/10.1093/bioinformatics/btab209). The manuscript
 is recently accepted and we will update the full citation when it is available.
 
 Key features of `pyShinyCell` include: 
->>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
 
 ## Features
 
@@ -44,7 +43,6 @@ Key features of `pyShinyCell` include:
 - **H5AD-first**: Native [AnnData](https://anndata.readthedocs.io/) support for seamless Python workflows
 - **One-command generation**: Single `makePyShinyApp()` call generates a complete app
 
-<<<<<<< HEAD
 ### 📊 Visualization Features (Inherited from ShinyCell)
 
 - Gene expression on 2D/3D embeddings (UMAP, t-SNE, etc.)
@@ -80,11 +78,9 @@ detailed description, see the
 - Default genes and plot settings
 - Flexible metadata selection
 
-<<<<<<< HEAD
 ## Quick Start
 =======
 - [Installation](#installation) on how to install `pyShinyCell`
->>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
 
 ### Installation
 
@@ -94,7 +90,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocMana
 BiocManager::install(c("SummarizedExperiment", "qvalue", "fgsea"))
 
 # Install from GitHub
-devtools::install_github("Olivier-Delaneau/pyShinyCell")
+devtools::install_github("nyuhuyang/pyShinyCell")
 
 # Python dependencies auto-setup on first use
 library(pyShinyCell)
@@ -106,24 +102,17 @@ setupPythonEnv()  # One-time setup
 ```r
 library(pyShinyCell)
 
-seu <- readRDS("path/to/your/seurat_object.rds")
-
+getExampleData()
+seu = readRDS("readySeu_rset.rds")
+seu <- Seurat::UpdateSeuratObject(seu) 
 makePyShinyApp(seu, shiny.dir = "myapp/", shiny.title = "My Analysis")
 ```
 
-<<<<<<< HEAD
 ### Run the App
 
 ```r
 shiny::runApp("myapp")
-=======
-`ShinyCell` can then be installed from GitHub as follows:
-``` r
-devtools::install_github("nyuhuyang/ShinyCell")
->>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
-```
-
-Open `http://localhost:3838` in your browser. Done! 🎉
+``` 
 
 ## pyShinyCell vs ShinyCell
 
@@ -239,7 +228,6 @@ When you run analysis in the app (DE, GSEA, correlation):
 
 ### Python Environment
 
-<<<<<<< HEAD
 pyShinyCell auto-manages a Python virtual environment (`~/.virtualenvs/pyShinyCell`) containing:
 - numpy, pandas, scipy, h5py
 - scanpy (single-cell analysis)
@@ -281,7 +269,7 @@ If you use **pyShinyCell**, please cite both:
   title={pyShinyCell: Python-Enhanced Interactive Single-Cell Analysis},
   author={Hu, Yang},
   year={2024},
-  url={https://github.com/Olivier-Delaneau/pyShinyCell}
+  url={https://github.com/nyuhuyang/pyShinyCell}
 }
 ```
 
