@@ -35,15 +35,10 @@
 #' # Load example Seurat object
 #' seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
 #'
-#' # Create minimal config
-#' scConf <- data.table::data.table(
-#'   ID = c("orig.ident"),
-#'   UI = c("Original Identity"),
-#'   fID = c(NA),
-#'   default = c(0)
-#' )
+#' # Create initial config
+#' scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 #'
-#' # Make metadata categorical
+#' # Make metadata categorical (update configuration)
 #' scConf <- makeMetaCategorical(scConf, "orig.ident", seu)
 #'
 #' @export

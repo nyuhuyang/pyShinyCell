@@ -20,16 +20,10 @@
 #' # Load example Seurat object
 #' seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
 #'
-#' # Create minimal config
-#' scConf <- data.table::data.table(
-#'   ID = c("orig.ident"),
-#'   UI = c("Original Identity"),
-#'   fID = c("H1|H2|H3|H4"),
-#'   fUI = c("H1|H2|H3|H4"),
-#'   default = c(1)
-#' )
+#' # Create configuration
+#' scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 #'
-#' # Check configuration
+#' # Check configuration for errors
 #' checkConfig(scConf, seu)
 #'
 #' @export
