@@ -66,4 +66,5 @@ VignetteBuilder: knitr
 URL: https://github.com/nyuhuyang/pyShinyCell
 BugReports: https://github.com/nyuhuyang/pyShinyCell/issues
 Remotes:
-    SGDDNB/ShinyCell
+    SGDDNB/ShinyCell,
+    mojaveazure/seurat-disk
