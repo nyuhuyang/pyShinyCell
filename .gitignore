@@ -53,7 +53,7 @@ vignettes/*.pdf
 /Meta/
 /shinyApp_develop
 /shinyApp_stable
-
+/jupyter
 # Python environment
 .pyenv/
 .wget-hsts
@@ -62,6 +62,7 @@ vignettes/*.pdf
 .sh_history
 
 # Test outputs
+
 test_app/
 test_end_to_end.R
 myapp/
