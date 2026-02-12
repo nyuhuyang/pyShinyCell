@@ -17,14 +17,23 @@
 #' @import data.table reticulate hdf5r
 #'
 #' @examples
-#' # Load example Seurat object
-#' seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+#' \dontrun{
+#' # Create example Seurat object
+#' if (requireNamespace("Seurat", quietly = TRUE)) {
+#'   counts <- matrix(rnbinom(1000, size = 1, prob = 0.1), ncol = 50)
+#'   rownames(counts) <- paste0("Gene", 1:nrow(counts))
+#'   colnames(counts) <- paste0("Cell", 1:ncol(counts))
+#'   seu <- Seurat::CreateSeuratObject(counts = counts)
+#'   seu$orig.ident <- factor(rep(c("sample1", "sample2"), each = 25))
+#'   seu$library <- factor(rep(c("lib1", "lib2"), times = 25))
 #'
-#' # Create configuration
-#' scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
+#'   # Create configuration
+#'   scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 #'
-#' # Check configuration for errors
-#' checkConfig(scConf, seu)
+#'   # Check configuration for errors
+#'   checkConfig(scConf, seu)
+#' }
+#' }
 #'
 #' @export
 checkConfig <- function(scConf, obj){
