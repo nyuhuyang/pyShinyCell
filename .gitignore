@@ -48,7 +48,6 @@ vignettes/*.pdf
 
 # Cache and build directories
 .cache/
-.github/
 
 # Local config / environment/ folder
 .config/
