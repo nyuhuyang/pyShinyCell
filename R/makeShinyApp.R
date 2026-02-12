@@ -49,21 +49,16 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Create example Seurat object
-#' if (requireNamespace("Seurat", quietly = TRUE)) {
-#'   counts <- matrix(rnbinom(1000, size = 1, prob = 0.1), ncol = 50)
-#'   rownames(counts) <- paste0("Gene", 1:nrow(counts))
-#'   colnames(counts) <- paste0("Cell", 1:ncol(counts))
-#'   seu <- Seurat::CreateSeuratObject(counts = counts)
-#'   seu$orig.ident <- factor(rep(c("sample1", "sample2"), each = 25))
+#' # Download example Seurat object
+#' getExampleData("single")
+#' seu <- readRDS("readySeu_rset.rds")
 #'
-#'   # Create configuration from Seurat object
-#'   scConf <- createConfig(seu, meta.to.include = c("orig.ident"))
+#' # Create configuration from Seurat object
+#' scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 #'
-#'   # Generate Shiny app (requires specific directory setup)
-#'   makeShinyApp(seu, scConf, shiny.dir = "myapp/",
-#'                shiny.title = "My Single Cell Analysis")
-#' }
+#' # Generate Shiny app (requires specific directory setup)
+#' makeShinyApp(seu, scConf, shiny.dir = "myapp/",
+#'              shiny.title = "My Single Cell Analysis")
 #' }
 #'
 #' @export

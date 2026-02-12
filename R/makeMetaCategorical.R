@@ -33,21 +33,15 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Create example Seurat object
-#' if (requireNamespace("Seurat", quietly = TRUE)) {
-#'   counts <- matrix(rnbinom(1000, size = 1, prob = 0.1), ncol = 50)
-#'   rownames(counts) <- paste0("Gene", 1:nrow(counts))
-#'   colnames(counts) <- paste0("Cell", 1:ncol(counts))
-#'   seu <- Seurat::CreateSeuratObject(counts = counts)
-#'   seu$orig.ident <- factor(rep(c("sample1", "sample2"), each = 25))
-#'   seu$library <- factor(rep(c("lib1", "lib2"), times = 25))
+#' # Download example Seurat object
+#' getExampleData("single")
+#' seu <- readRDS("readySeu_rset.rds")
 #'
-#'   # Create initial config
-#'   scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
+#' # Create initial config
+#' scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 #'
-#'   # Make metadata categorical (update configuration)
-#'   scConf <- makeMetaCategorical(scConf, "orig.ident", seu)
-#' }
+#' # Make metadata categorical (update configuration)
+#' scConf <- makeMetaCategorical(scConf, "orig.ident", seu)
 #' }
 #'
 #' @export
