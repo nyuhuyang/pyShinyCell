@@ -38,3 +38,14 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 .Rproj.user
+
+# IDE / editor config
+.idea/
+.vscode/
+
+# Claude Code
+.claude/
+
+# Local config / environment
+.config/
+.local/
