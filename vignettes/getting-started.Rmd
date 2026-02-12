@@ -67,6 +67,8 @@ To manually set up the Python environment:
 
 ```r
 library(pyShinyCell)
+# Install python if not available
+# reticulate::install_python()
 
 # Initialize Python environment (one-time setup)
 setupPythonEnv(venv_name = "pyShinyCell")
@@ -86,11 +88,9 @@ The easiest way to get started is with a Seurat object:
 ```r
 library(pyShinyCell)
 
-# Option A: Use a Seurat object you already have
-seu <- readRDS("path/to/your/seurat_object.rds")
-
-# Option B: Try the reference data (included with package)
-# seu <- readRDS(system.file("extdata", "example.rds", package = "pyShinyCell"))
+getExampleData()
+seu = readRDS("readySeu_rset.rds")
+seu <- Seurat::UpdateSeuratObject(seu) 
 ```
 
 ### Step 2: Generate the Shiny App

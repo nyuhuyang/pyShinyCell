@@ -40,11 +40,16 @@ categories of categorical metadata and (iii) colour palettes associated
 with each metadata.
 }
 \examples{
-# Load example Seurat object
-seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+\donttest{
+# Load example Seurat object from ShinyCell repository
+# Note: This downloads a 193MB dataset from http://files.ddnetbio.com
+# (requires internet access, skipped during R CMD check)
+getExampleData("single")
+seu <- readRDS("readySeu_rset.rds")
 
 # Create configuration from Seurat object
 scConf <- createConfig(seu)
+}
 
 }
 \author{

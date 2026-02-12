@@ -45,7 +45,6 @@ vignettes/*.pdf
 
 # Claude Code
 .claude/
-CLAUDE.md
 
 # Local config / environment/ folder
 .config/
@@ -60,4 +59,10 @@ CLAUDE.md
 .wget-hsts
 
 # Shell history
-.sh_historyCLAUDE.md
+.sh_history
+
+# Test outputs
+test_app/
+test_end_to_end.R
+myapp/
+readySeu_rset.rds

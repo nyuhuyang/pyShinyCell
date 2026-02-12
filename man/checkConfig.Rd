@@ -23,14 +23,17 @@ that in the Seurat/SingleCellExperiment object, (ii) number of levels does
 not match number of colours and (iii) specified colours are invalid colours.
 }
 \examples{
-# Load example Seurat object
-seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+\dontrun{
+# Download example Seurat object
+getExampleData("single")
+seu <- readRDS("readySeu_rset.rds")
 
 # Create configuration
 scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 
 # Check configuration for errors
 checkConfig(scConf, seu)
+}
 
 }
 \author{

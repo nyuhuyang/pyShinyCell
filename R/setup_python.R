@@ -22,15 +22,27 @@
 #'
 #' @details
 #' This function performs the following steps:
-#' 1. Clears existing Python environment variables to avoid interference
-#' 2. Creates a Python virtual environment if it doesn't exist
-#' 3. Upgrades pip, setuptools, and wheel
-#' 4. Installs required Python packages
-#' 5. Activates the environment in reticulate
-#' 6. Verifies all packages can be imported
+#' 1. Verifies Python 3 is installed (installs if needed with `reticulate::install_python()`)
+#' 2. Clears existing Python environment variables to avoid interference
+#' 3. Creates a Python virtual environment if it doesn't exist
+#' 4. Upgrades pip, setuptools, and wheel
+#' 5. Installs required Python packages
+#' 6. Activates the environment in reticulate
+#' 7. Verifies all packages can be imported
 #'
 #' The function is idempotent: running it multiple times on the same environment
 #' is safe and will skip re-creation if the environment already exists.
+#'
+#' If Python is not found on your system, the function will provide installation
+#' instructions for three methods:
+#' - **Easiest**: `reticulate::install_python()` (R-based installation)
+#' - **Linux/Mac**: `sudo apt-get install python3-venv` (system package manager)
+#' - **Any OS**: Download from https://www.python.org/downloads/
+#'
+#' @section System Requirements:
+#' - R 3.5.0 or higher
+#' - Python 3.6 or higher with venv support
+#' - `reticulate` package
 #'
 #' @section Dependencies:
 #' Requires the `reticulate` package to be loaded.
@@ -64,6 +76,37 @@ setupPythonEnv <- function(
   Sys.unsetenv("CONDA_PREFIX")
   Sys.unsetenv("PYTHONPATH")
 
+  # Step 1.5: Check if Python is available
+  msg("[CHECK] Verifying Python installation...")
+  if (python_exe == "" || is.na(python_exe)) {
+    msg("[WARNING] Python 3 not found in PATH.")
+    msg("Please install Python using one of these methods:")
+    msg("")
+    msg("  Option 1: Install via reticulate (easiest)")
+    msg("    reticulate::install_python()")
+    msg("")
+    msg("  Option 2: System package manager (Ubuntu/Debian)")
+    msg("    sudo apt-get update")
+    msg("    sudo apt-get install python3-venv python3-pip python3-dev")
+    msg("")
+    msg("  Option 3: From python.org")
+    msg("    https://www.python.org/downloads/")
+    msg("")
+    stop("Python 3 is required but not found. Please install it using one of the methods above.")
+  }
+
+  # Verify Python executable actually works
+  py_check <- tryCatch({
+    system2(python_exe, "--version", stdout = TRUE, stderr = TRUE)
+  }, error = function(e) NULL)
+
+  if (is.null(py_check)) {
+    msg("[ERROR] Python executable found but cannot be executed: ", python_exe)
+    msg("Please verify your Python installation and try again.")
+    stop("Python executable verification failed.")
+  }
+  msg("[OK] Python found: ", python_exe)
+
   # Step 2: Define environment paths
   venv_root <- path.expand("~/.virtualenvs")
   venv_dir <- file.path(venv_root, venv_name)
@@ -81,7 +124,12 @@ setupPythonEnv <- function(
     if (!dir.exists(venv_root)) {
       dir.create(venv_root, recursive = TRUE, showWarnings = FALSE)
     }
-    reticulate::virtualenv_create(envname = venv_name, python = python_exe)
+    tryCatch({
+      reticulate::virtualenv_create(envname = venv_name, python = python_exe)
+    }, error = function(e) {
+      stop("Failed to create virtual environment. Error: ", e$message, "\n",
+           "Make sure Python 3 is properly installed with venv support.")
+    })
   } else {
     msg("[OK] Virtualenv already exists: ", venv_dir)
   }

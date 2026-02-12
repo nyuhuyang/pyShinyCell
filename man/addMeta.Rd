@@ -35,14 +35,17 @@ updated shinycell config data.table
 Add a metadata to be included in the shiny app.
 }
 \examples{
-# Load example Seurat object
-seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+\dontrun{
+# Download example Seurat object
+getExampleData("single")
+seu <- readRDS("readySeu_rset.rds")
 
 # Create initial config with some metadata
 scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 
 # Add another metadata variable to the config
-scConf <- addMeta(scConf, c("cluster"), seu)
+scConf <- addMeta(scConf, c("nUMI"), seu)
+}
 
 }
 \author{

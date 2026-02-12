@@ -79,15 +79,18 @@ Make a shiny app based on the shinycell config data.table and single-cell
 data object.
 }
 \examples{
-# Load example Seurat object from package
-seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+\dontrun{
+# Download example Seurat object
+getExampleData("single")
+seu <- readRDS("readySeu_rset.rds")
 
 # Create configuration from Seurat object
-scConf <- createConfig(seu)
+scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 
-# This is typically used to generate a Shiny app:
-# makeShinyApp(seu, scConf, shiny.dir = "myapp/",
-#              shiny.title = "My Single Cell Analysis")
+# Generate Shiny app (requires specific directory setup)
+makeShinyApp(seu, scConf, shiny.dir = "myapp/",
+             shiny.title = "My Single Cell Analysis")
+}
 
 }
 \author{

@@ -73,7 +73,7 @@ makePyShinyFiles <- function(
     scConf,
     gex.assay = NA,
     gex.slot = c("data", "scale.data", "counts"),
-    gene.mapping = FALSE,
+    gene.mapping = TRUE,
     shiny.prefix = "sc1",
     shiny.dir = "shinyApp/",
     default.gene1 = NA,
@@ -91,22 +91,42 @@ makePyShinyFiles <- function(
     if (verbose) cat(paste0(..., "\n"))
   }
 
+  # Handle Seurat objects missing the 'images' slot (compatibility issue)
+  if (methods::is(obj, "Seurat") && !("images" %in% slotNames(obj))) {
+    msg("  [NOTE] Adding empty 'images' slot to Seurat object...")
+    obj@images <- new("SlotList")
+  }
+
   # Step 1: Call ShinyCell::makeShinyFiles for standard files
   msg("[FILE] Generating ShinyCell data files...")
-  ShinyCell::makeShinyFiles(
-    obj = obj,
-    scConf = scConf,
-    gex.assay = gex.assay,
-    gex.slot = gex.slot,
-    gene.mapping = gene.mapping,
-    shiny.prefix = shiny.prefix,
-    shiny.dir = shiny.dir,
-    default.gene1 = default.gene1,
-    default.gene2 = default.gene2,
-    default.multigene = default.multigene,
-    default.dimred = default.dimred,
-    chunkSize = chunkSize
-  )
+  tryCatch({
+    ShinyCell::makeShinyFiles(
+      obj = obj,
+      scConf = scConf,
+      gex.assay = gex.assay,
+      gex.slot = gex.slot,
+      gene.mapping = gene.mapping,
+      shiny.prefix = shiny.prefix,
+      shiny.dir = shiny.dir,
+      default.gene1 = default.gene1,
+      default.gene2 = default.gene2,
+      default.multigene = default.multigene,
+      default.dimred = default.dimred,
+      chunkSize = chunkSize
+    )
+  }, error = function(e) {
+    if (grepl("images", e$message, ignore.case = TRUE)) {
+      msg("  [WARN] Attempting workaround for Seurat images slot issue...")
+      # Try to reload the package to clear any cached references
+      if (methods::is(obj, "Seurat")) {
+        msg("  [WARN] This is a known issue with newer Seurat versions.")
+        msg("  Please upgrade Seurat: devtools::install_github('satijalab/seurat')")
+        stop("Failed with images slot error. ", e$message)
+      }
+    }
+    stop("ShinyCell::makeShinyFiles failed: ", e$message)
+  })
+
 
   # Prepare file paths
   if (!dir.exists(shiny.dir)) {
@@ -138,16 +158,25 @@ makePyShinyFiles <- function(
         }
 
         sc <- reticulate::import("scanpy", convert = FALSE)
-        scipy <- reticulate::import("scipy.sparse", convert = FALSE)
+        np <- reticulate::import("numpy", convert = FALSE)
 
         # Read H5AD
         adata <- sc$read_h5ad(h5ad_path)
         gene_names <- reticulate::py_to_r(adata$var_names$values)
 
         # Calculate max per gene
-        msg("   Computing sparse matrix max...")
-        max_exp <- scipy$sparse$csr_matrix$max(adata$X, axis = 0L)
-        max_exp_vec <- as.vector(reticulate::py_to_r(max_exp))
+        msg("   Computing maximum expression per gene...")
+        # Handle both dense and sparse matrices
+        X_data <- adata$X
+        # For sparse matrices, convert to dense for max calculation
+        if (reticulate::py_has_attr(X_data, "toarray")) {
+          # It's a sparse matrix, convert to dense
+          X_dense <- X_data$toarray()
+          max_exp_vec <- reticulate::py_to_r(np$max(X_dense, axis = 0L))
+        } else {
+          # It's already dense
+          max_exp_vec <- reticulate::py_to_r(np$max(X_data, axis = 0L))
+        }
 
         # Create data frame and save
         max_exp_df <- data.frame(val = max_exp_vec, row.names = gene_names)

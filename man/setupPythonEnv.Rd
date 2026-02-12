@@ -42,16 +42,30 @@ environments before creating new ones.
 }
 \details{
 This function performs the following steps:
-1. Clears existing Python environment variables to avoid interference
-2. Creates a Python virtual environment if it doesn't exist
-3. Upgrades pip, setuptools, and wheel
-4. Installs required Python packages
-5. Activates the environment in reticulate
-6. Verifies all packages can be imported
+1. Verifies Python 3 is installed (installs if needed with `reticulate::install_python()`)
+2. Clears existing Python environment variables to avoid interference
+3. Creates a Python virtual environment if it doesn't exist
+4. Upgrades pip, setuptools, and wheel
+5. Installs required Python packages
+6. Activates the environment in reticulate
+7. Verifies all packages can be imported
 
 The function is idempotent: running it multiple times on the same environment
 is safe and will skip re-creation if the environment already exists.
+
+If Python is not found on your system, the function will provide installation
+instructions for three methods:
+- **Easiest**: `reticulate::install_python()` (R-based installation)
+- **Linux/Mac**: `sudo apt-get install python3-venv` (system package manager)
+- **Any OS**: Download from https://www.python.org/downloads/
 }
+\section{System Requirements}{
+
+- R 3.5.0 or higher
+- Python 3.6 or higher with venv support
+- `reticulate` package
+}
+
 \section{Dependencies}{
 
 Requires the `reticulate` package to be loaded.

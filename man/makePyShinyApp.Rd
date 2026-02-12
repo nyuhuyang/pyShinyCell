@@ -13,7 +13,7 @@ makePyShinyApp(
   enable_tabs = c("de1", "de2", "gsea", "correlation", "tcr"),
   gex.assay = NA,
   gex.slot = c("data", "scale.data", "counts"),
-  gene.mapping = FALSE,
+  gene.mapping = TRUE,
   default.gene1 = NA,
   default.gene2 = NA,
   default.multigene = NA,

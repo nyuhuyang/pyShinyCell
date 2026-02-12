@@ -96,6 +96,12 @@ convertToH5AD <- function(
   h5seurat_path <- gsub("\\.h5ad$", ".h5Seurat", h5ad.path)
   msg("[FILE] Converting to H5Seurat: ", basename(h5seurat_path))
 
+  # Remove existing H5Seurat file if it exists (SaveH5Seurat will fail otherwise)
+  if (file.exists(h5seurat_path)) {
+    msg("  [NOTE] Removing existing H5Seurat file...")
+    file.remove(h5seurat_path)
+  }
+
   tryCatch({
     SeuratDisk::SaveH5Seurat(obj, filename = h5seurat_path)
   }, error = function(e) {
@@ -104,6 +110,12 @@ convertToH5AD <- function(
 
   # Step 4: Convert H5Seurat to H5AD
   msg("[CONV] Converting H5Seurat to H5AD...")
+  # Remove existing H5AD file if it exists (Convert will fail otherwise)
+  if (file.exists(h5ad.path)) {
+    msg("  [NOTE] Removing existing H5AD file...")
+    file.remove(h5ad.path)
+  }
+
   tryCatch({
     SeuratDisk::Convert(h5seurat_path, dest = "h5ad")
   }, error = function(e) {

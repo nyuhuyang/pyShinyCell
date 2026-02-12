@@ -127,85 +127,24 @@ makePyShinyCode <- function(
 .generateServerCode <- function(scConf, prefix, enable_tabs, py_env, verbose = FALSE) {
   msg <- function(...) if (verbose) cat(paste0(..., "\n"))
 
-  # Base server code
-  server_code <- glue::glue('
-# pyShinyCell Generated Server Code
-shinyServer(function(input, output, session) {{
-  # Setup and initialization
-  source("util.R")
-  source("util_palette.R")
-  observe_helpers()
+  msg("[CODE] Generating server.R from reference implementation...")
 
-  # Generate gene selection options
-  optCrt = "{ option_create: function(data, escape) { return(\"<div class=\\\"create\\\"><strong>\" + escape(data.input) + \"</strong></div>\"); } }"
+  # Read reference server.R from package resources
+  ref_server_path <- system.file("shinyApp_stable", "server.R", package = "pyShinyCell")
 
-  # Initialize UI element choices
-  for (gene_input in grep("inpg[12]$", names(input), value = TRUE)) {{
-    updateSelectizeInput(session, gene_input,
-      choices = sort(names({prefix}gene)), server = TRUE,
-      options = list(maxOptions = 100, create = TRUE, persist = TRUE, render = I(optCrt)))
-  }}
-
-  # ============ STANDARD TABS (a0-a4) ============
-  # Placeholder: Standard ShinyCell server logic
-  # (Include standard dimension reduction, gene expression plotting, etc.)
-
-  ')
-
-  # Add custom tab server code
-  if ("de1" %in% enable_tabs) {
-    msg("Adding DE1 (pairwise) tab server code...")
-    server_code <- paste0(server_code, "
-  # ============ TAB B1: Differential Expression (Pairwise) ============
-  # DE analysis comparing two groups
-  # TODO: Extract from shinyApp_stable/server.R lines 487-627
-
-    ")
+  if (!file.exists(ref_server_path)) {
+    stop("Reference server.R not found at: ", ref_server_path)
   }
 
-  if ("de2" %in% enable_tabs) {
-    msg("Adding DE2 (all-vs-rest) tab server code...")
-    server_code <- paste0(server_code, "
-  # ============ TAB C1: Differential Expression (All-vs-Rest) ============
-  # All-vs-rest DE analysis with clustering
-  # TODO: Extract from shinyApp_stable/server.R lines 628-701
+  # Read reference code and replace prefix
+  server_code <- readLines(ref_server_path, warn = FALSE)
+  server_code <- paste0(server_code, collapse = "\n")
 
-    ")
-  }
+  # Replace sc1 prefix with provided prefix
+  server_code <- gsub("\\bsc1([a-z0-9])", paste0(prefix, "\\1"), server_code)
+  server_code <- gsub("\\bsc1$", prefix, server_code, perl = TRUE)
 
-  if ("gsea" %in% enable_tabs) {
-    msg("Adding GSEA tab server code...")
-    server_code <- paste0(server_code, "
-  # ============ TAB D1: Gene Set Enrichment Analysis ============
-  # Pathway enrichment visualization
-  # TODO: Extract GSEA functionality
-
-    ")
-  }
-
-  if ("correlation" %in% enable_tabs) {
-    msg("Adding Correlation tab server code...")
-    server_code <- paste0(server_code, "
-  # ============ TAB E1: Correlation Analysis ============
-  # Gene-gene correlation networks
-  # TODO: Extract correlation functionality
-
-    ")
-  }
-
-  if ("tcr" %in% enable_tabs) {
-    msg("Adding TCR tab server code...")
-    server_code <- paste0(server_code, "
-  # ============ TAB F1: TCR/Repertoire Analysis ============
-  # T cell receptor clonotype analysis
-  # TODO: Extract TCR functionality
-
-    ")
-  }
-
-  # Close shinyServer
-  server_code <- paste0(server_code, "\n})\n")
-
+  msg("[OK] Server code generated with prefix: ", prefix)
   return(server_code)
 }
 
@@ -214,95 +153,27 @@ shinyServer(function(input, output, session) {{
 .generateUICode <- function(scConf, prefix, title, enable_tabs, verbose = FALSE) {
   msg <- function(...) if (verbose) cat(paste0(..., "\n"))
 
-  ui_code <- glue::glue('
-# pyShinyCell Generated UI Code
-source("util.R")
-library(shinyhelper)
-library(shinycssloaders)
-library(bslib)
+  msg("[CODE] Generating ui.R from reference implementation...")
 
-shinyUI(fluidPage(
-  tags$head(tags$style(HTML(".shiny-output-error-validation {{color: red; font-weight: bold;}}"))),
-  theme = bs_theme(bootswatch = "default"),
-  titlePanel("{title}"),
-  navbarPage(
-    NULL,
-    # ============ STANDARD TABS ============
-    tabPanel("CellInfo",
-      h4("Cell information on reduced dimensions"),
-      p("Visualize cell metadata on dimension reductions"),
-      # TODO: Include standard ShinyCell UI
-      br()
-    ),
+  # Read reference ui.R from package resources
+  ref_ui_path <- system.file("shinyApp_stable", "ui.R", package = "pyShinyCell")
 
-    # ============ CUSTOM ANALYSIS TABS ============
-    ')
-
-  if ("de1" %in% enable_tabs) {
-    msg("Adding DE1 tab UI...")
-    ui_code <- paste0(ui_code, '
-    tabPanel("Differential Expression",
-      h4("Pairwise differential expression analysis"),
-      p("Compare gene expression between two cell groups"),
-      # TODO: Include DE1 UI elements
-      br()
-    ),
-    ')
+  if (!file.exists(ref_ui_path)) {
+    stop("Reference ui.R not found at: ", ref_ui_path)
   }
 
-  if ("de2" %in% enable_tabs) {
-    msg("Adding DE2 tab UI...")
-    ui_code <- paste0(ui_code, '
-    tabPanel("All-vs-Rest DE",
-      h4("All-vs-rest differential expression"),
-      p("Identify markers for each group vs all others"),
-      # TODO: Include DE2 UI elements
-      br()
-    ),
-    ')
-  }
+  # Read reference code and replace prefix + title
+  ui_code <- readLines(ref_ui_path, warn = FALSE)
+  ui_code <- paste0(ui_code, collapse = "\n")
 
-  if ("gsea" %in% enable_tabs) {
-    msg("Adding GSEA tab UI...")
-    ui_code <- paste0(ui_code, '
-    tabPanel("GSEA",
-      h4("Gene set enrichment analysis"),
-      p("Pathway and biological function enrichment"),
-      # TODO: Include GSEA UI elements
-      br()
-    ),
-    ')
-  }
+  # Replace sc1 prefix with provided prefix
+  ui_code <- gsub("\\bsc1([a-z0-9])", paste0(prefix, "\\1"), ui_code)
+  ui_code <- gsub("\\bsc1$", prefix, ui_code, perl = TRUE)
 
-  if ("correlation" %in% enable_tabs) {
-    msg("Adding Correlation tab UI...")
-    ui_code <- paste0(ui_code, '
-    tabPanel("Correlation",
-      h4("Gene-gene correlation analysis"),
-      p("Identify correlated gene expression patterns"),
-      # TODO: Include correlation UI elements
-      br()
-    ),
-    ')
-  }
+  # Replace title placeholder if present
+  ui_code <- gsub("My pyShinyCell App", title, ui_code, fixed = TRUE)
 
-  if ("tcr" %in% enable_tabs) {
-    msg("Adding TCR tab UI...")
-    ui_code <- paste0(ui_code, '
-    tabPanel("TCR",
-      h4("T cell receptor repertoire"),
-      p("TCR clonotype and diversity analysis"),
-      # TODO: Include TCR UI elements
-      br()
-    ),
-    ')
-  }
-
-  ui_code <- paste0(ui_code, "
-  )  # End navbarPage
-))  # End fluidPage + shinyUI
-  ")
-
+  msg("[OK] UI code generated with prefix: ", prefix)
   return(ui_code)
 }
 
@@ -313,6 +184,7 @@ shinyUI(fluidPage(
 # pyShinyCell Generated Global Setup
 library(shiny)
 library(reticulate)
+library(data.table)
 
 # Load data files
 {prefix}conf <- readRDS("{prefix}conf.rds")
@@ -340,6 +212,7 @@ tryCatch({{
 # ============ SOURCE ALL UTILITY FUNCTIONS ============
 if (file.exists("util.R")) source("util.R")
 if (file.exists("util_palette.R")) source("util_palette.R")
+
   ')
 
   return(code)

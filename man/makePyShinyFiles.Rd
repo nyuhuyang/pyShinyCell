@@ -9,7 +9,7 @@ makePyShinyFiles(
   scConf,
   gex.assay = NA,
   gex.slot = c("data", "scale.data", "counts"),
-  gene.mapping = FALSE,
+  gene.mapping = TRUE,
   shiny.prefix = "sc1",
   shiny.dir = "shinyApp/",
   default.gene1 = NA,

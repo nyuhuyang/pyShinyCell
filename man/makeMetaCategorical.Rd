@@ -40,14 +40,17 @@ as discrete metadata automatically. This is especially important when
 working with loom files as they do not support factors/levels by default.
 }
 \examples{
-# Load example Seurat object
-seu <- readRDS(system.file("extdata", "readySeu_rset.rds", package = "pyShinyCell"))
+\dontrun{
+# Download example Seurat object
+getExampleData("single")
+seu <- readRDS("readySeu_rset.rds")
 
 # Create initial config
 scConf <- createConfig(seu, meta.to.include = c("orig.ident", "library"))
 
 # Make metadata categorical (update configuration)
 scConf <- makeMetaCategorical(scConf, "orig.ident", seu)
+}
 
 }
 \author{
