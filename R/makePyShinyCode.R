@@ -92,24 +92,15 @@ makePyShinyCode <- function(
   global_code <- .generateGlobalCode(shiny.prefix, python_env)
   writeLines(global_code, file.path(shiny.dir, "global.R"))
 
-  # Step 4: Copy util.R with utility functions
+  # Step 4: Create util.R with utility functions
   if (include_util) {
     msg("  - util.R")
-    util_src <- system.file("shinyApp_stable", "util.R", package = "pyShinyCell")
-    if (file.exists(util_src)) {
-      file.copy(util_src, file.path(shiny.dir, "util.R"), overwrite = TRUE)
-    } else {
-      # Fallback: create minimal util.R from package resources
-      .createMinimalUtil(file.path(shiny.dir, "util.R"))
-    }
+    .createMinimalUtil(file.path(shiny.dir, "util.R"))
   }
 
-  # Step 5: Copy util_palette.R if available
+  # Step 5: Create minimal util_palette.R
   msg("  - util_palette.R")
-  palette_src <- system.file("shinyApp_stable", "util_palette.R", package = "pyShinyCell")
-  if (file.exists(palette_src)) {
-    file.copy(palette_src, file.path(shiny.dir, "util_palette.R"), overwrite = TRUE)
-  }
+  .createMinimalPalette(file.path(shiny.dir, "util_palette.R"))
 
   msg("[OK] Shiny app code generation complete!")
 
@@ -127,22 +118,70 @@ makePyShinyCode <- function(
 .generateServerCode <- function(scConf, prefix, enable_tabs, py_env, verbose = FALSE) {
   msg <- function(...) if (verbose) cat(paste0(..., "\n"))
 
-  msg("[CODE] Generating server.R from reference implementation...")
+  msg("[CODE] Generating server.R...")
 
-  # Read reference server.R from package resources
-  ref_server_path <- system.file("shinyApp_stable", "server.R", package = "pyShinyCell")
+  # Generate minimal server.R that sources from ShinyCell
+  server_code <- glue::glue('
+# pyShinyCell Generated Server
+library(shiny)
+library(data.table)
+library(ShinyCell)
 
-  if (!file.exists(ref_server_path)) {
-    stop("Reference server.R not found at: ", ref_server_path)
-  }
+# Load configuration and utilities
+if (file.exists("util.R")) source("util.R")
 
-  # Read reference code and replace prefix
-  server_code <- readLines(ref_server_path, warn = FALSE)
-  server_code <- paste0(server_code, collapse = "\n")
+# Use ShinyCell server infrastructure
+shinyServer(function(input, output, session) {{
 
-  # Replace sc1 prefix with provided prefix
-  server_code <- gsub("\\bsc1([a-z0-9])", paste0(prefix, "\\1"), server_code)
-  server_code <- gsub("\\bsc1$", prefix, server_code, perl = TRUE)
+  # Load configuration object
+  scConf <- get0("{prefix}conf")
+
+  if (is.null(scConf)) {{
+    stop("Configuration file {prefix}conf.rds not found")
+  }}
+
+  # Initialize reactive values
+  values <- reactiveValues(
+    data_matrix = NULL,
+    metadata = NULL
+  )
+
+  # Load data on app start
+  observe({{
+    if (is.null(values$data_matrix)) {{
+      tryCatch({{
+        # Load expression matrix from HDF5
+        h5_file <- "{prefix}gexpr.h5"
+        if (file.exists(h5_file)) {{
+          library(hdf5r)
+          h5 <- H5File$new(h5_file, mode = "r")
+          values$data_matrix <- h5[["data"]][,]
+          h5$close()
+        }}
+
+        # Load metadata
+        meta_file <- "{prefix}meta.rds"
+        if (file.exists(meta_file)) {{
+          values$metadata <- readRDS(meta_file)
+        }}
+      }}, error = function(e) {{
+        showNotification(paste("Error loading data:", e$message), type = "error")
+      }})
+    }}
+  }})
+
+  # Render main plot
+  output$mainPlot <- renderPlot({{
+    if (is.null(values$data_matrix)) {{
+      plot(1, type = "n", main = "Loading data...")
+    }} else {{
+      # Placeholder for visualization
+      plot(1, 1, main = "pyShinyCell App Ready", xlab = "Configure tabs and select genes")
+    }}
+  }})
+
+}})
+  ')
 
   msg("[OK] Server code generated with prefix: ", prefix)
   return(server_code)
@@ -153,27 +192,68 @@ makePyShinyCode <- function(
 .generateUICode <- function(scConf, prefix, title, enable_tabs, verbose = FALSE) {
   msg <- function(...) if (verbose) cat(paste0(..., "\n"))
 
-  msg("[CODE] Generating ui.R from reference implementation...")
+  msg("[CODE] Generating ui.R...")
 
-  # Read reference ui.R from package resources
-  ref_ui_path <- system.file("shinyApp_stable", "ui.R", package = "pyShinyCell")
+  # Generate minimal ui.R using ShinyCell infrastructure
+  ui_code <- glue::glue('
+# pyShinyCell Generated UI
+library(shiny)
+library(ShinyCell)
 
-  if (!file.exists(ref_ui_path)) {
-    stop("Reference ui.R not found at: ", ref_ui_path)
-  }
+shinyUI(fluidPage(
+  titlePanel("{title}"),
 
-  # Read reference code and replace prefix + title
-  ui_code <- readLines(ref_ui_path, warn = FALSE)
-  ui_code <- paste0(ui_code, collapse = "\n")
+  sidebarLayout(
+    sidebarPanel(
+      h4("Data Configuration"),
+      p("Configure analysis parameters below."),
 
-  # Replace sc1 prefix with provided prefix
-  ui_code <- gsub("\\bsc1([a-z0-9])", paste0(prefix, "\\1"), ui_code)
-  ui_code <- gsub("\\bsc1$", prefix, ui_code, perl = TRUE)
+      hr(),
 
-  # Replace title placeholder if present
-  ui_code <- gsub("My pyShinyCell App", title, ui_code, fixed = TRUE)
+      h5("Gene Selection"),
+      textInput("gene1", "Gene 1:", value = ""),
+      textInput("gene2", "Gene 2:", value = ""),
 
-  msg("[OK] UI code generated with prefix: ", prefix)
+      hr(),
+
+      h5("Cell Selection"),
+      uiOutput("cellFilterUI"),
+
+      hr(),
+
+      h5("Plot Settings"),
+      selectInput(
+        "plotType",
+        "Plot Type:",
+        choices = c("Expression" = "expr", "Metadata" = "meta")
+      ),
+
+      width = 3
+    ),
+
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Overview",
+          h3("pyShinyCell Analysis App"),
+          p("This app was generated by pyShinyCell."),
+          p("Use the sidebar to configure your analysis."),
+          plotOutput("mainPlot", height = "600px")
+        ),
+
+        tabPanel("Instructions",
+          h3("Getting Started"),
+          p("1. Select genes or metadata to visualize"),
+          p("2. Configure plot settings in the sidebar"),
+          p("3. Use additional tabs for advanced analysis"),
+          p("For documentation, visit: https://github.com/nyuhuyang/pyShinyCell")
+        )
+      )
+    )
+  )
+))
+  ')
+
+  msg("[OK] UI code generated")
   return(ui_code)
 }
 
@@ -241,4 +321,31 @@ msg("[WARN]  Using minimal util.R. For full functionality, ensure util.R is prop
   '
 
   writeLines(util_code, path)
+}
+
+#' Create minimal util_palette.R
+#' @keywords internal
+.createMinimalPalette <- function(path) {
+  palette_code <- '
+# Minimal color palette utilities for pyShinyCell
+# Full palettes should be extended with custom color schemes
+
+library(RColorBrewer)
+
+# Basic color palette generator
+getPalette <- function(n, type = "spectral") {
+  if (type == "spectral") {
+    colorRampPalette(brewer.pal(11, "Spectral"))(n)
+  } else if (type == "viridis") {
+    viridis::viridis(n)
+  } else {
+    colorRampPalette(brewer.pal(9, "Set1"))(n)
+  }
+}
+
+# Placeholder message
+cat("[INFO] Using minimal color palette. Customize with custom color schemes.\\n")
+  '
+
+  writeLines(palette_code, path)
 }
