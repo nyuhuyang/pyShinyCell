@@ -1,9 +1,32 @@
+<<<<<<< HEAD
 # pyShinyCell: Python-Enhanced Interactive Single-Cell Analysis
 
 **pyShinyCell** extends [ShinyCell](https://github.com/SGDDNB/ShinyCell) with Python-powered statistical analysis tools, enabling interactive single-cell genomics applications with integrated differential expression, enrichment analysis, and correlation networks.
 
 [![R package](https://img.shields.io/badge/R%20package-v0.1.0-blue.svg)](https://github.com/Olivier-Delaneau/pyShinyCell)
 [![Python integration](https://img.shields.io/badge/Python%20integration-scanpy%20%2B%20gseapy-green.svg)](#python-analysis)
+=======
+# pyShinyCell package
+`pyShinyCell` is a R + python package that allows users to create interactive Shiny-based 
+web applications to visualise single-cell data via (i) visualising cell 
+information and/or gene expression on reduced dimensions e.g. UMAP, (ii) 
+visualising the coexpression of two genes on reduced dimensions, (iii) 
+visualising the distribution of continuous cell information e.g. nUMI / module 
+scores using violin plots / box plots, (iv) visualising the composition of 
+different clusters / groups of cells using proportion plots and (v) 
+visualising the expression of multiple genes using bubbleplots / heatmap. 
+Examples of ShinyCell-generated shiny apps for single and multi datasets can 
+be found at http://shinycell1.ddnetbio.com and http://shinycell2.ddnetbio.com 
+respectively.
+
+If you are using `pyShinyCell`, please cite [Ouyang et al. ShinyCell: Simple and 
+sharable visualisation of single-cell gene expression data. Bioinformatics, 
+doi:10.1093/bioinformatics/btab209](
+http://dx.doi.org/10.1093/bioinformatics/btab209). The manuscript 
+is recently accepted and we will update the full citation when it is available.
+
+Key features of `pyShinyCell` include: 
+>>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
 
 ## Features
 
@@ -21,6 +44,7 @@
 - **H5AD-first**: Native [AnnData](https://anndata.readthedocs.io/) support for seamless Python workflows
 - **One-command generation**: Single `makePyShinyApp()` call generates a complete app
 
+<<<<<<< HEAD
 ### 📊 Visualization Features (Inherited from ShinyCell)
 
 - Gene expression on 2D/3D embeddings (UMAP, t-SNE, etc.)
@@ -29,6 +53,17 @@
 - Violin plots, proportion plots, heatmaps
 - Interactive cell brushing and table display
 - Export plots as PDF/PNG
+=======
+7. It is easy to use and customise aethetsics e.g. label names and colour 
+   palettes. In the simplest form, pyShinyCell can convert an input single-cell 
+   data into a Shiny app with five lines of code 
+   (see [Quick Start Guide](#quick-start-guide))
+
+We also compared pyShinyCell with nine other popular scRNA-seq visualisation 
+tools, which further highlights the key features of `pyShinyCell`. For a more 
+detailed description, see the 
+[Supplementary Information](docs/OuyangEtAl_Shinycell_SuppInfo.pdf).
+>>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
 
 ### ⚡ Performance & Scalability
 
@@ -45,7 +80,11 @@
 - Default genes and plot settings
 - Flexible metadata selection
 
+<<<<<<< HEAD
 ## Quick Start
+=======
+- [Installation](#installation) on how to install `pyShinyCell`
+>>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
 
 ### Installation
 
@@ -72,10 +111,16 @@ seu <- readRDS("path/to/your/seurat_object.rds")
 makePyShinyApp(seu, shiny.dir = "myapp/", shiny.title = "My Analysis")
 ```
 
+<<<<<<< HEAD
 ### Run the App
 
 ```r
 shiny::runApp("myapp")
+=======
+`ShinyCell` can then be installed from GitHub as follows:
+``` r
+devtools::install_github("nyuhuyang/ShinyCell")
+>>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
 ```
 
 Open `http://localhost:3838` in your browser. Done! 🎉
@@ -194,6 +239,7 @@ When you run analysis in the app (DE, GSEA, correlation):
 
 ### Python Environment
 
+<<<<<<< HEAD
 pyShinyCell auto-manages a Python virtual environment (`~/.virtualenvs/pyShinyCell`) containing:
 - numpy, pandas, scipy, h5py
 - scanpy (single-cell analysis)
@@ -294,3 +340,10 @@ pyShinyCell builds on the excellent [ShinyCell](https://github.com/SGDDNB/ShinyC
 **Get started**: `vignette("getting-started")`
 **Customize**: `vignette("customization")`
 **Report issues**: [GitHub Issues](https://github.com/Olivier-Delaneau/pyShinyCell/issues)
+=======
+<br/><br/>
+<br/><br/>
+<br/><br/>
+<br/><br/>
+<br/><br/>
+>>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
