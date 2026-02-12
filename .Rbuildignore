@@ -15,3 +15,9 @@
 ^\.cache$
 ^\.sh_history$
 ^\.github$
+^\.claude$
+^\.config$
+^\.idea$
+^\.local$
+^\.pyenv$
+^\.wget-hsts$

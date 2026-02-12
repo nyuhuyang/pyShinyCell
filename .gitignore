@@ -46,10 +46,15 @@ vignettes/*.pdf
 # Claude Code
 .claude/
 
-# Local config / environment
+# Local config / environment/ folder
 .config/
 .local/
+.sh_history
 /doc/
 /Meta/
 /shinyApp_develop
 /shinyApp_stable
+
+# Python environment
+.pyenv/
+.wget-hsts
