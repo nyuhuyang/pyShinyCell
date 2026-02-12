@@ -1,15 +1,14 @@
 #' Convert Seurat Object to H5AD Format
 #'
 #' Converts a Seurat object to AnnData (h5ad) format compatible with Python
-#' tools like scanpy and gseapy. This function handles the intermediate
-#' H5Seurat conversion and compression optimization for efficient storage.
+#' tools like scanpy and gseapy. Uses Python's anndata library for direct
+#' conversion without requiring SeuratDisk.
 #'
 #' @param obj A Seurat (v3+) object to convert
 #' @param h5ad.path Character. Path where the h5ad file should be saved.
 #'   Must end with ".h5ad"
-#' @param compress.gzip Logical. If TRUE (default), compresses the output
-#'   using gzip compression level 9 for optimized file size. This requires
-#'   Python environment with scanpy.
+#' @param compress.gzip Logical. If TRUE (default), uses gzip compression
+#'   (compression_opts = 9) when writing H5AD file.
 #' @param remove_assays Character vector. Names of assays to remove before
 #'   conversion to reduce file size. For example, c("integrated", "SCT")
 #' @param convert_factors Logical. If TRUE (default), converts all factor
@@ -20,11 +19,11 @@
 #'
 #' @details
 #' The conversion process:
-#' 1. Cleans metadata by converting factors to characters
-#' 2. Removes specified assays to reduce file size
-#' 3. Converts to H5Seurat intermediate format
-#' 4. Converts H5Seurat to H5AD
-#' 5. Optionally re-compresses with gzip (recommended for large files)
+#' 1. Extracts counts matrix from the default Seurat assay
+#' 2. Extracts cell and gene metadata
+#' 3. Extracts dimensional reductions (PCA, UMAP, tSNE, etc.)
+#' 4. Creates AnnData object using Python's anndata library
+#' 5. Writes to H5AD format with optional gzip compression
 #'
 #' The resulting h5ad file can be read by Python tools:
 #' \code{
@@ -33,8 +32,8 @@
 #' }
 #'
 #' @section Dependencies:
-#' Requires Seurat (v3+), SeuratDisk, and reticulate packages.
-#' For gzip compression, requires Python with scanpy.
+#' Requires Seurat (v3+) and reticulate packages.
+#' Python must have anndata package installed.
 #'
 #' @examples
 #' # This is typically called internally or requires setup.
@@ -51,8 +50,8 @@ convertToH5AD <- function(
   if (!requireNamespace("Seurat", quietly = TRUE)) {
     stop("Seurat package is required. Install it with: install.packages('Seurat')")
   }
-  if (!requireNamespace("SeuratDisk", quietly = TRUE)) {
-    stop("SeuratDisk package is required for H5Seurat/H5AD conversion.")
+  if (!requireNamespace("reticulate", quietly = TRUE)) {
+    stop("reticulate package is required. Install it with: install.packages('reticulate')")
   }
 
   msg <- function(...) {
@@ -92,64 +91,73 @@ convertToH5AD <- function(
     }
   }
 
-  # Step 3: Convert to H5Seurat
-  h5seurat_path <- gsub("\\.h5ad$", ".h5Seurat", h5ad.path)
-  msg("[FILE] Converting to H5Seurat: ", basename(h5seurat_path))
+  # Step 3: Extract data for AnnData creation
+  msg("[EXTR] Extracting data from Seurat object...")
 
-  # Remove existing H5Seurat file if it exists (SaveH5Seurat will fail otherwise)
-  if (file.exists(h5seurat_path)) {
-    msg("  [NOTE] Removing existing H5Seurat file...")
-    file.remove(h5seurat_path)
+  # Get counts matrix (transposed: genes x cells)
+  assay <- Seurat::DefaultAssay(obj)
+  counts <- Seurat::GetAssayData(obj, assay = assay, slot = "counts")
+  if (nrow(counts) == 0) {
+    counts <- Seurat::GetAssayData(obj, assay = assay, slot = "data")
   }
+
+  # Convert to dense matrix if sparse (for some Python compatibility)
+  if (!methods::is(counts, "matrix")) {
+    counts <- as(counts, "dgCMatrix")  # Ensure sparse format for efficiency
+  }
+
+  # Get metadata
+  metadata <- as.data.frame(obj@meta.data)
+
+  # Get dimensional reductions
+  reductions <- list()
+  if (length(obj@reductions) > 0) {
+    msg("[DR] Including dimensional reductions: ", paste(names(obj@reductions), collapse = ", "))
+    for (red_name in names(obj@reductions)) {
+      reductions[[red_name]] <- Seurat::Embeddings(obj[[red_name]])
+    }
+  }
+
+  # Step 4: Create AnnData object using Python
+  msg("[CONV] Creating AnnData object...")
 
   tryCatch({
-    SeuratDisk::SaveH5Seurat(obj, filename = h5seurat_path)
-  }, error = function(e) {
-    stop("Failed to save H5Seurat: ", e$message)
-  })
+    # Import anndata
+    anndata <- reticulate::import("anndata", convert = FALSE)
+    np <- reticulate::import("numpy", convert = FALSE)
+    scipy_sparse <- reticulate::import("scipy.sparse", convert = FALSE)
 
-  # Step 4: Convert H5Seurat to H5AD
-  msg("[CONV] Converting H5Seurat to H5AD...")
-  # Remove existing H5AD file if it exists (Convert will fail otherwise)
-  if (file.exists(h5ad.path)) {
-    msg("  [NOTE] Removing existing H5AD file...")
-    file.remove(h5ad.path)
-  }
+    # Convert R sparse matrix to Python sparse matrix
+    counts_scipy <- scipy_sparse$csr_matrix(Matrix::t(counts))
 
-  tryCatch({
-    SeuratDisk::Convert(h5seurat_path, dest = "h5ad")
-  }, error = function(e) {
-    stop("Failed to convert to H5AD: ", e$message)
-  })
+    # Create AnnData object (genes x cells format)
+    adata <- anndata$AnnData(
+      X = counts_scipy,
+      obs = metadata,
+      var = data.frame(gene_names = rownames(counts), row.names = rownames(counts))
+    )
 
-  # Clean up intermediate file
-  if (file.exists(h5seurat_path)) {
-    file.remove(h5seurat_path)
-  }
-
-  # Step 5: Optional gzip compression
-  if (compress.gzip && file.exists(h5ad.path)) {
-    msg("[PKG] Applying gzip compression (level 9)...")
-
-    tryCatch({
-      if (!requireNamespace("reticulate", quietly = TRUE)) {
-        stop("reticulate required for gzip compression")
+    # Add reductions to obsm
+    if (length(reductions) > 0) {
+      for (red_name in names(reductions)) {
+        adata$obsm[[paste0("X_", tolower(red_name))]] <- reductions[[red_name]]
       }
+    }
 
-      sc <- reticulate::import("scanpy", convert = FALSE)
-      scipy <- reticulate::import("scipy.sparse", convert = FALSE)
+    # Step 5: Write to H5AD with compression
+    msg("[WRITE] Writing H5AD file: ", basename(h5ad.path))
 
-      # Read original h5ad
-      adata <- sc$read_h5ad(h5ad.path)
-
-      # Write with gzip compression
+    if (compress.gzip) {
       adata$write(h5ad.path, compression = "gzip", compression_opts = 9L)
+      msg("[OK] H5AD with gzip compression written")
+    } else {
+      adata$write(h5ad.path)
+      msg("[OK] H5AD file written")
+    }
 
-      msg("[OK] Gzip compression complete")
-    }, error = function(e) {
-      warning("Gzip compression failed, keeping original format: ", e$message)
-    })
-  }
+  }, error = function(e) {
+    stop("Failed to create/write AnnData: ", e$message)
+  })
 
   msg("[OK] H5AD conversion complete: ", h5ad.path)
   invisible(h5ad.path)
