@@ -13,7 +13,6 @@
 ^jupyter$
 ^pyShinyCell\.R$
 ^\.cache$
-^\.sh_history$
 ^\.github$
 ^\.claude$
 ^\.config$
@@ -21,3 +20,4 @@
 ^\.local$
 ^\.pyenv$
 ^\.wget-hsts$
+^\.sh_history$
