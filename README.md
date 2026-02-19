@@ -7,6 +7,7 @@
 [![R-CMD-check](https://github.com/nyuhuyang/pyShinyCell/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/nyuhuyang/pyShinyCell/actions/workflows/R-CMD-check.yml)
 =======
 # pyShinyCell package
+
 `pyShinyCell` is a R + python package that allows users to create interactive Shiny-based 
 web applications to visualise single-cell data via (i) visualising cell 
 information and/or gene expression on reduced dimensions e.g. UMAP, (ii) 
@@ -16,7 +17,7 @@ scores using violin plots / box plots, (iv) visualising the composition of
 different clusters / groups of cells using proportion plots and (v) 
 visualising the expression of multiple genes using bubbleplots / heatmap. 
 Examples of ShinyCell-generated shiny apps for single and multi datasets can 
-be found at http://shinycell1.ddnetbio.com and http://shinycell2.ddnetbio.com 
+be found at https://weillcornellmed.shinyapps.io/Human_BladderCancer_ShinyCell and https://weillcornellmed.shinyapps.io/Mouse_BladderCancer_ShinyCell
 respectively.
 
 If you are using `pyShinyCell`, please cite [Ouyang et al. ShinyCell: Simple and 
@@ -51,7 +52,7 @@ Key features of `pyShinyCell` include:
 - Violin plots, proportion plots, heatmaps
 - Interactive cell brushing and table display
 - Export plots as PDF/PNG
-=======
+
 7. It is easy to use and customise aethetsics e.g. label names and colour 
    palettes. In the simplest form, pyShinyCell can convert an input single-cell 
    data into a Shiny app with five lines of code 
@@ -61,7 +62,6 @@ We also compared pyShinyCell with nine other popular scRNA-seq visualisation
 tools, which further highlights the key features of `pyShinyCell`. For a more 
 detailed description, see the 
 [Supplementary Information](docs/OuyangEtAl_Shinycell_SuppInfo.pdf).
->>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
 
 ### ⚡ Performance & Scalability
 
@@ -78,8 +78,9 @@ detailed description, see the
 - Default genes and plot settings
 - Flexible metadata selection
 
-## Quick Start
 =======
+## Quick Start
+
 - [Installation](#installation) on how to install `pyShinyCell`
 
 ### Installation
@@ -253,10 +254,10 @@ makePyShinyApp(seu, python_env = "my_env", ...)
 
 ## Use Cases
 
-✅ **Research labs**: Share analysis with collaborators
-✅ **Clinical settings**: Enable non-programmers to explore data
-✅ **Teaching**: Interactive single-cell analysis demonstrations
-✅ **Publications**: Supplementary interactive figures
+✅ **Research labs**: Share analysis with collaborators<br>
+✅ **Clinical settings**: Enable non-programmers to explore data<br>
+✅ **Teaching**: Interactive single-cell analysis demonstrations<br>
+✅ **Publications**: Supplementary interactive figures<br>
 ✅ **Companies**: Internal data exploration tools
 
 ## Citation
@@ -334,4 +335,3 @@ pyShinyCell builds on the excellent [ShinyCell](https://github.com/SGDDNB/ShinyC
 <br/><br/>
 <br/><br/>
 <br/><br/>
->>>>>>> 0afd0be1ed7d8d7be420e8b04d8f5d63b4336976
